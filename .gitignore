@@ -1,4 +1,7 @@
 /.kodik
+/backend/node_modules/
+/backend/.env.local
+
 # dependencies
 /node_modules
 /.pnp
