@@ -1,7 +1,23 @@
-import { TopBar, GnomeWindow } from "@/components/GnomeUI";
+"use client";
+
+import { TopBar, GnomeWindow, AuthModal } from "@/components/GnomeUI";
 import Link from "next/link";
+import { useAuth } from "@/lib/AuthContext";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const HomePage = () => {
+	const { user } = useAuth();
+	const [isAuthOpen, setIsAuthOpen] = useState(false);
+	const router = useRouter();
+
+	const handleStartClick = (e: React.MouseEvent) => {
+		if (!user) {
+			e.preventDefault();
+			setIsAuthOpen(true);
+		}
+	};
+
 	return (
 		<main className="h-screen w-screen overflow-hidden flex flex-col">
 			<TopBar />
@@ -64,8 +80,10 @@ const HomePage = () => {
 							</div>
 							<Link
 								href="/knowledgeJourney"
+								onClick={handleStartClick}
 								className="shrink-0 bg-ubuntu-orange hover:bg-[#ff632d] text-white font-bold py-3 px-8 rounded-md shadow-lg transition-all active:scale-95 flex items-center gap-2"
-							>								Начать обучение
+							>
+								Начать обучение
 								<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
 								</svg>
@@ -74,6 +92,11 @@ const HomePage = () => {
 					</article>
 				</GnomeWindow>
 			</div>
+			<AuthModal
+				isOpen={isAuthOpen}
+				onClose={() => setIsAuthOpen(false)}
+				onSuccess={() => router.push('/knowledgeJourney')}
+			/>
 		</main>
 	);
 };

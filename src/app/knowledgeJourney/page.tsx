@@ -1,3 +1,5 @@
+"use client";
+
 import { TopBar, GnomeWindow } from "@/components/GnomeUI";
 
 const KnowledgeJourney = () => {

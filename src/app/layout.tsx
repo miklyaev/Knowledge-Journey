@@ -6,6 +6,8 @@ export const metadata: Metadata = {
 	description: "Современная система обучения в стиле GNOME",
 };
 
+import { AuthProvider } from "@/lib/AuthContext";
+
 export default function RootLayout({
 	children,
 }: Readonly<{
@@ -19,7 +21,9 @@ export default function RootLayout({
 				<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet" />
 			</head>
 			<body className="antialiased">
-				{children}
+				<AuthProvider>
+					{children}
+				</AuthProvider>
 			</body>
 		</html>
 	);
