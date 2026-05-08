@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+	--foreground-rgb: 0, 0, 0;
+	--background-start-rgb: 214, 219, 220;
+	--background-end-rgb: 255, 255, 255;
+}
+
+body {
+	color: rgb(var(--foreground-rgb));
+	background: linear-gradient(135deg, #772953 0%, #E95420 100%);
+	min-height: 100vh;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	font-family: 'Ubuntu', 'Inter', sans-serif;
+}
+
+.gnome-window {
+	@apply bg-gnome-window rounded-gnome shadow-gnome overflow-hidden border border-gray-400/30;
+}
+
+.gnome-header {
+	@apply bg-gradient-to-b from-[#f6f5f4] to-[#ebebeb] px-4 py-2 flex items-center justify-between border-b border-gray-300 select-none;
+}
+
+.gnome-top-bar {
+	@apply bg-black text-white h-8 flex items-center px-4 text-[13px] font-medium fixed top-0 w-full z-50;
+}
+
+.gnome-content {
+	@apply p-8 overflow-y-auto text-gray-800 leading-relaxed;
+}
+
+h1 {
+	@apply text-2xl font-bold mb-6 text-gray-900;
+}
+
+h2 {
+	@apply text-xl font-semibold mt-6 mb-3 text-ubuntu-orange;
+}
+
+p {
+	@apply mb-4;
+}
+
+ul {
+	@apply list-disc ml-6 mb-4 space-y-2;
+}
+
+li {
+	@apply text-gray-700;
+}
