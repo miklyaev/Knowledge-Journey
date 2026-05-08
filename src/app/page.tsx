@@ -1,4 +1,5 @@
 import { TopBar, GnomeWindow } from "@/components/GnomeUI";
+import Link from "next/link";
 
 const HomePage = () => {
 	return (
@@ -54,11 +55,21 @@ const HomePage = () => {
 							</div>
 						</section>
 
-						<div className="mt-12 p-6 bg-ubuntu-dark text-white rounded-lg shadow-inner">
-							<h3 className="text-white text-xl mb-2">Готовы изменить подход?</h3>
-							<p className="mb-0 opacity-90">
-								Наша интерактивная система обучения решает эти проблемы, превращая пассивное чтение в активный процесс с участием нейронных сетей.
-							</p>
+						<div className="mt-12 p-6 bg-ubuntu-dark text-white rounded-lg shadow-inner flex flex-col md:flex-row items-center justify-between gap-6">
+							<div className="flex-grow">
+								<h3 className="text-white text-xl mb-2">Готовы изменить подход?</h3>
+								<p className="mb-0 opacity-90">
+									Наша интерактивная система обучения решает эти проблемы, превращая пассивное чтение в активный процесс с участием нейронных сетей.
+								</p>
+							</div>
+							<Link
+								href="/knowledgeJourney"
+								className="shrink-0 bg-ubuntu-orange hover:bg-[#ff632d] text-white font-bold py-3 px-8 rounded-md shadow-lg transition-all active:scale-95 flex items-center gap-2"
+							>								Начать обучение
+								<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+								</svg>
+							</Link>
 						</div>
 					</article>
 				</GnomeWindow>

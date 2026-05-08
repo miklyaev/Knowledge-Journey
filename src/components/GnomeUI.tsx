@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link';
 
 interface WindowProps {
 	title: string;
@@ -30,17 +31,18 @@ export const TopBar: React.FC = () => {
 	return (
 		<div className="gnome-top-bar">
 			<div className="flex items-center gap-1 h-full">
-				<div className="hover:bg-white/10 px-3 py-1 rounded cursor-default transition-colors flex items-center gap-2">
+				<Link href="/" className="hover:bg-white/10 px-3 py-1 rounded cursor-default transition-colors flex items-center gap-2">
 					<span className="font-bold">Главная</span>
-				</div>
-			</div>
-			<div className="absolute left-1/2 -translate-x-1/2 flex items-center h-full">
+				</Link>
+				<Link href="/knowledgeJourney" className="hover:bg-white/10 px-3 py-1 rounded cursor-default transition-colors flex items-center gap-2">
+					<span className="font-medium opacity-90">Маршрут обучения</span>
+				</Link>
+			</div>			<div className="absolute left-1/2 -translate-x-1/2 flex items-center h-full">
 				<span className="text-xs font-bold">8 мая 15:40</span>
 			</div>
 			<div className="flex-grow" />
 			<div className="flex items-center gap-4">
 				<div className="flex gap-3 items-center opacity-90">
-					<div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin hidden" />
 					<div className="flex gap-1">
 						<div className="w-1 h-3 bg-white rounded-full" />
 						<div className="w-1 h-3 bg-white rounded-full" />
