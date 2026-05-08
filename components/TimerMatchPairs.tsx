@@ -4,7 +4,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs: ClassValue[]) {
-	return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs));
 }
 
 interface Pair {
@@ -18,7 +18,8 @@ interface TimerMatchPairsProps {
   rightItems: Pair[];
   correctMapping: Record<string, string>;
   timerSeconds?: number;
-  onComplete?: (isCorrect: boolean) => void;
+  weight?: number;
+  onComplete?: (isCorrect: boolean, points?: number) => void;
   className?: string;
 }
 
@@ -28,6 +29,7 @@ const TimerMatchPairs: React.FC<TimerMatchPairsProps> = ({
   rightItems,
   correctMapping,
   timerSeconds = 60,
+  weight = 1,
   onComplete,
   className = "my-0",
 }) => {
@@ -53,7 +55,7 @@ const TimerMatchPairs: React.FC<TimerMatchPairsProps> = ({
       }, 1000);
     } else if (timeLeft === 0 && !isSubmitted && isStarted) {
       setIsTimeUp(true);
-      if (onComplete) onComplete(false);
+      if (onComplete) onComplete(false, 0);
       if (timerRef.current) clearInterval(timerRef.current);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
@@ -85,7 +87,7 @@ const TimerMatchPairs: React.FC<TimerMatchPairsProps> = ({
     if (Object.keys(matches).length === leftItems.length) {
       setIsSubmitted(true);
       if (timerRef.current) clearInterval(timerRef.current);
-      if (onComplete) onComplete(isAllCorrect);
+      if (onComplete) onComplete(isAllCorrect, isAllCorrect ? weight : 0);
     }
   };
 

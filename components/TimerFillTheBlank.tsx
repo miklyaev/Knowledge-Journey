@@ -12,7 +12,8 @@ interface TimerFillTheBlankProps {
 	question: string;
 	correctAnswer: string | string[];
 	timerSeconds?: number;
-	onComplete?: (isCorrect: boolean) => void;
+	weight?: number;
+	onComplete?: (isCorrect: boolean, points?: number) => void;
 	className?: string;
 }
 
@@ -20,6 +21,7 @@ const TimerFillTheBlank: React.FC<TimerFillTheBlankProps> = ({
 	question,
 	correctAnswer,
 	timerSeconds = 60,
+	weight = 1,
 	onComplete,
 	className = "my-0",
 }) => {
@@ -51,7 +53,7 @@ const TimerFillTheBlank: React.FC<TimerFillTheBlankProps> = ({
 			}, 1000);
 		} else if (timeLeft === 0 && !isSubmitted && isStarted) {
 			setIsTimeUp(true);
-			if (onComplete) onComplete(false);
+			if (onComplete) onComplete(false, 0);
 			if (timerRef.current) clearInterval(timerRef.current);
 		}
 		return () => { if (timerRef.current) clearInterval(timerRef.current); };
@@ -64,7 +66,7 @@ const TimerFillTheBlank: React.FC<TimerFillTheBlankProps> = ({
 		if (answered || !userInput.trim()) return;
 		setIsSubmitted(true);
 		if (timerRef.current) clearInterval(timerRef.current);
-		if (onComplete) onComplete(isCorrect);
+		if (onComplete) onComplete(isCorrect, isCorrect ? weight : 0);
 	};
 
 	const handleReset = () => {

@@ -4,7 +4,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs: ClassValue[]) {
-	return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs));
 }
 
 interface TimerSingleChoiceProps {
@@ -12,8 +12,9 @@ interface TimerSingleChoiceProps {
   options: string[];
   correctAnswer: number;
   timerSeconds?: number;
+  weight?: number;
   onSelect?: (index: number) => void;
-  onComplete?: (isCorrect: boolean) => void;
+  onComplete?: (isCorrect: boolean, points?: number) => void;
   className?: string;
 }
 
@@ -22,6 +23,7 @@ const TimerSingleChoice: React.FC<TimerSingleChoiceProps> = ({
   options,
   correctAnswer,
   timerSeconds = 60,
+  weight = 1,
   onSelect,
   onComplete,
   className = "my-0",
@@ -42,7 +44,7 @@ const TimerSingleChoice: React.FC<TimerSingleChoiceProps> = ({
       }, 1000);
     } else if (timeLeft === 0 && selected === null && isStarted) {
       setIsTimeUp(true);
-      if (onComplete) onComplete(false);
+      if (onComplete) onComplete(false, 0);
       if (timerRef.current) clearInterval(timerRef.current);
     }
 
@@ -58,7 +60,7 @@ const TimerSingleChoice: React.FC<TimerSingleChoiceProps> = ({
     setSelected(index);
     if (timerRef.current) clearInterval(timerRef.current);
     if (onSelect) onSelect(index);
-    if (onComplete) onComplete(index === correctAnswer);
+    if (onComplete) onComplete(index === correctAnswer, index === correctAnswer ? weight : 0);
   };
 
   const handleReset = () => {

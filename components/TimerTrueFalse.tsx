@@ -12,7 +12,8 @@ interface TimerTrueFalseProps {
 	correctAnswer: boolean;
 	explanation: string;
 	timerSeconds?: number;
-	onComplete?: (isCorrect: boolean) => void;
+	weight?: number;
+	onComplete?: (isCorrect: boolean, points?: number) => void;
 	className?: string;
 }
 
@@ -21,6 +22,7 @@ const TimerTrueFalse: React.FC<TimerTrueFalseProps> = ({
 	correctAnswer,
 	explanation,
 	timerSeconds = 60,
+	weight = 1,
 	onComplete,
 	className = "my-0",
 }) => {
@@ -40,7 +42,7 @@ const TimerTrueFalse: React.FC<TimerTrueFalseProps> = ({
 			}, 1000);
 		} else if (timeLeft === 0 && selected === null && isStarted) {
 			setIsTimeUp(true);
-			if (onComplete) onComplete(false);
+			if (onComplete) onComplete(false, 0);
 			if (timerRef.current) clearInterval(timerRef.current);
 		}
 
@@ -55,7 +57,7 @@ const TimerTrueFalse: React.FC<TimerTrueFalseProps> = ({
 		if (answered) return;
 		setSelected(value);
 		if (timerRef.current) clearInterval(timerRef.current);
-		if (onComplete) onComplete(value === correctAnswer);
+		if (onComplete) onComplete(value === correctAnswer, value === correctAnswer ? weight : 0);
 	};
 
 	const handleReset = () => {

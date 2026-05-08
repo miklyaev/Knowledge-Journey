@@ -4,7 +4,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs: ClassValue[]) {
-	return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs));
 }
 
 interface TimerOrderStepsProps {
@@ -12,7 +12,8 @@ interface TimerOrderStepsProps {
   steps: string[];
   correctOrder: string[];
   timerSeconds?: number;
-  onComplete?: (isCorrect: boolean) => void;
+  weight?: number;
+  onComplete?: (isCorrect: boolean, points?: number) => void;
   className?: string;
 }
 
@@ -21,6 +22,7 @@ const TimerOrderSteps: React.FC<TimerOrderStepsProps> = ({
   steps,
   correctOrder,
   timerSeconds = 60,
+  weight = 1,
   onComplete,
   className = "my-0",
 }) => {
@@ -45,7 +47,7 @@ const TimerOrderSteps: React.FC<TimerOrderStepsProps> = ({
       }, 1000);
     } else if (timeLeft === 0 && !isSubmitted && isStarted) {
       setIsTimeUp(true);
-      if (onComplete) onComplete(false);
+      if (onComplete) onComplete(false, 0);
       if (timerRef.current) clearInterval(timerRef.current);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
@@ -70,7 +72,7 @@ const TimerOrderSteps: React.FC<TimerOrderStepsProps> = ({
   const handleSubmit = () => {
     setIsSubmitted(true);
     if (timerRef.current) clearInterval(timerRef.current);
-    if (onComplete) onComplete(isCorrect);
+    if (onComplete) onComplete(isCorrect, isCorrect ? weight : 0);
   };
 
   const handleReset = () => {
