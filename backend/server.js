@@ -6,6 +6,7 @@ import { GigaChat } from 'gigachat';
 import { Agent } from 'node:https';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,6 +17,17 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Функция для чтения системного промпта из файла
+const getSystemPrompt = () => {
+	try {
+		const promptPath = path.join(__dirname, 'systemPrompt.md');
+		return fs.readFileSync(promptPath, 'utf8');
+	} catch (error) {
+		console.error('Ошибка при чтении systemPrompt.md:', error);
+		return "Ты преподаватель в высшем техническом заведении."; // Фолбэк
+	}
+};
 
 // Обслуживание статических файлов frontend (для продакшена)
 // Import database service
@@ -85,7 +97,8 @@ const logRequest = async (aiProvider, prompt, referrer) => {
 // Прокси-эндпоинт для генерации текста
 app.post('/api/gigachat/generate', async (req, res) => {
 	try {
-		const { prompt, systemPrompt = "Ты преподаватель в высшем техническом заведении, студенты тебе могут задавать вопросы по следующим темам: \n- программирование на языках, которые ты знаешь\n- точные науки такие как математика, физика, химия, электроника, астрономия\n- экономические науки\n- журналистика\nЕсли заданные тебе вопросы не относятся к этим темам отвечай следующее: это не относится к темам, которые мне разрешены" } = req.body;
+		const { prompt, systemPrompt: customSystemPrompt } = req.body;
+		const systemPrompt = customSystemPrompt || getSystemPrompt();
 
 		if (!gigachatClient) {
 			return res.status(500).json({
@@ -137,8 +150,9 @@ app.post('/api/yandexgpt/generate', async (req, res) => {
 	try {
 		const {
 			prompt,
-			systemPrompt = "Ты преподаватель в высшем техническом заведении, студенты тебе могут задавать вопросы по следующим темам: \n- программирование на языках, которые ты знаешь\n- точные науки такие как математика, физика, химия, электроника, астрономия\n- экономические науки\n- журналистика\nЕсли заданные тебе вопросы не относятся к этим темам отвечай следующее: это не относится к темам, которые мне разрешены"
+			systemPrompt: customSystemPrompt
 		} = req.body;
+		const systemPrompt = customSystemPrompt || getSystemPrompt();
 
 		const { YANDEXGPT_API_KEY, YANDEXGPT_FOLDER_ID } = process.env;
 
