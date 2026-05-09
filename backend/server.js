@@ -243,7 +243,7 @@ process.on('SIGINT', async () => {
 	process.exit(0);
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3031;
 app.listen(PORT, () => {
 	console.log(`GigaChat Proxy Server running on port ${PORT}`);
 	if (gigachatClient) {

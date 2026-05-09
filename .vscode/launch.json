@@ -5,11 +5,13 @@
       "type": "node",
       "request": "launch",
       "name": "Debug Backend",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "program": "${workspaceFolder}/backend/server.js",
-      "runtimeArgs": ["--experimental-modules"],
       "envFile": "${workspaceFolder}/backend/.env",
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
     }
   ]
 }
