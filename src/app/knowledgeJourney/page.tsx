@@ -1,13 +1,14 @@
 "use client";
 
 import { TopBar, GnomeWindow } from "@/components/GnomeUI";
+import AIAssistant from "@/components/AIAssistant";
 
 const KnowledgeJourney = () => {
 	return (
-		<main className="h-screen w-screen overflow-hidden flex flex-col">
+		<main className="h-screen w-screen overflow-y-auto flex flex-col bg-slate-950">
 			<TopBar />
 
-			<div className="flex-grow flex items-center justify-center p-4 mt-8">
+			<div className="flex-grow flex flex-col items-center justify-start p-4 mt-12 gap-8">
 				<GnomeWindow title="Маршрут обучения">
 					<div className="flex flex-col items-center justify-center h-64 text-gray-500">
 						<div className="w-16 h-16 mb-4 opacity-20">
@@ -19,9 +20,12 @@ const KnowledgeJourney = () => {
 						<p className="text-sm">Здесь будет визуализация вашего прогресса и следующих шагов.</p>
 					</div>
 				</GnomeWindow>
+
+				<div className="w-full max-w-4xl mb-8">
+					<AIAssistant />
+				</div>
 			</div>
 		</main>
 	);
 };
-
 export default KnowledgeJourney;
