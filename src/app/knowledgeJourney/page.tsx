@@ -205,10 +205,10 @@ const KnowledgeJourney = () => {
 												</div>
 												<button
 													onClick={handleNextStep}
-													className="group flex items-center gap-2 px-10 py-4 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-ubuntu-orange/20 active:scale-95"
+													className="group flex items-center gap-2 px-6 py-2.5 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-xl font-bold transition-all shadow-md hover:shadow-ubuntu-orange/20 active:scale-95 text-sm"
 												>
 													{currentStep < journey.length - 1 ? "Следующий тест" : "Посмотреть итоги"}
-													<ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+													<ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
 												</button>
 											</div>
 										)}

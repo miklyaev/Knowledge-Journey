@@ -197,12 +197,6 @@ const TimerMultipleChoice: React.FC<TimerMultipleChoiceProps> = ({
 											? '✗ Время вышло!'
 											: '✗ Не совсем верно.'}
 								</p>
-								<button
-									onClick={handleReset}
-									className="text-xs text-ubuntu-orange hover:underline underline-offset-2 focus:outline-none"
-								>
-									Попробовать снова
-								</button>
 							</div>
 						)}					</div>
 				)}

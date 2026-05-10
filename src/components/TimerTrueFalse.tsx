@@ -133,22 +133,13 @@ const TimerTrueFalse: React.FC<TimerTrueFalseProps> = ({
 							})}
 						</div>
 						{answered && (
-							<div className="space-y-3 pt-4 border-t border-blue-50">
-								<div className="flex items-center justify-between">
-									<p className={cn("text-sm font-bold", isCorrect ? "text-green-700" : "text-red-700")}>
-										{isCorrect ? '✓ Верно!' : isTimeUp ? '✗ Время вышло!' : '✗ Неверно.'}
-									</p>
-									<button onClick={handleReset} className="text-xs text-blue-600 hover:text-blue-800 underline underline-offset-2">
-										Попробовать снова
-									</button>
-								</div>
-								<div className="bg-gray-50 p-3 rounded-lg border border-blue-100/50">
-									<p className="text-sm text-gray-700 leading-relaxed">
-										<span className="font-semibold">Объяснение:</span> {explanation}
-									</p>
-								</div>
+							<div className="flex items-center justify-between pt-4">
+								<p className={cn("text-sm font-medium", isCorrect ? "text-green-700" : "text-red-700")}>
+									{isCorrect ? '✓ Верно!' : isTimeUp ? '✗ Время вышло!' : '✗ Неверно.'}
+								</p>
 							</div>
 						)}
+
 					</div>
 				)}
 			</div>

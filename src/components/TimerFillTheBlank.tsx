@@ -142,6 +142,7 @@ const TimerFillTheBlank: React.FC<TimerFillTheBlankProps> = ({
 							</div>
 						)}
 
+
 						{!isSubmitted && !isTimeUp && (
 							<div className="mt-8 flex justify-end">
 								<button

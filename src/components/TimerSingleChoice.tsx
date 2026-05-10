@@ -136,9 +136,6 @@ const TimerSingleChoice: React.FC<TimerSingleChoiceProps> = ({
                 <p className={cn("text-sm font-medium", isCorrect ? "text-green-700" : "text-red-700")}>
                   {isCorrect ? '✓ Верно!' : isTimeUp ? '✗ Время вышло!' : '✗ Неверно.'}
                 </p>
-                <button onClick={handleReset} className="text-xs text-blue-600 hover:text-blue-800 underline underline-offset-2">
-                  Попробовать снова
-                </button>
               </div>
             )}
           </div>

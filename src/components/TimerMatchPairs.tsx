@@ -180,7 +180,6 @@ const TimerMatchPairs: React.FC<TimerMatchPairsProps> = ({
                 <p className={cn("text-sm font-medium", isAllCorrect ? "text-green-700" : "text-red-700")}>
                   {isAllCorrect ? '✓ Верно!' : isTimeUp ? '✗ Время вышло!' : '✗ Есть ошибки.'}
                 </p>
-                <button onClick={handleReset} className="text-xs text-blue-600 hover:text-blue-800 underline">Попробовать снова</button>
               </div>
             )}
           </div>
