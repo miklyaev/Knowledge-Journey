@@ -12,7 +12,11 @@ function cn(...inputs: ClassValue[]) {
 type AIProvider = 'yandexgpt' | 'gigachat';
 type BackendStatus = 'checking' | 'online' | 'offline';
 
-const AIAssistant: React.FC = () => {
+interface AIAssistantProps {
+  onJourneyGenerated?: (journey: any[]) => void;
+}
+
+const AIAssistant: React.FC<AIAssistantProps> = ({ onJourneyGenerated }) => {
   const [prompt, setPrompt] = useState('');
   const [provider, setProvider] = useState<AIProvider>('yandexgpt');
   const [response, setResponse] = useState('');
@@ -57,7 +61,25 @@ const AIAssistant: React.FC = () => {
       const data = await res.json();
 
       if (res.ok) {
-        setResponse(data.content);
+        const content = data.content;
+
+        // Поиск JSON в ответе
+        const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+
+        // Очистка текста от JSON блока для отображения пользователю
+        const cleanText = content.replace(/```json\s*[\s\S]*?\s*```/g, '').trim();
+        setResponse(cleanText);
+
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            const parsed = JSON.parse(jsonMatch[1]);
+            if (parsed.journey && Array.isArray(parsed.journey) && onJourneyGenerated) {
+              onJourneyGenerated(parsed.journey);
+            }
+          } catch (e) {
+            console.error('Failed to parse journey JSON:', e);
+          }
+        }
       } else {
         setResponse(`Ошибка: ${data.error || 'Не удалось получить ответ'}`);
       }
@@ -79,11 +101,11 @@ const AIAssistant: React.FC = () => {
   return (
     <div className="flex flex-col w-full mx-auto p-6 bg-[#f6f6f6] border border-gray-300 rounded-2xl shadow-sm">
       {/* Header & Toggle */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-end justify-between mb-6">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-gray-800">
             <Bot size={22} className="text-ubuntu-orange" />
-            <h2 className="text-lg font-bold tracking-tight">ИИ Помощник</h2>
+            <h2 className="text-lg font-bold tracking-tight leading-none">Интерактивный помощник обучения</h2>
           </div>
           <div className="flex items-center gap-1.5">
             {backendStatus === 'checking' && (
