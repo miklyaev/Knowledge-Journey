@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle, XCircle, HelpCircle, Timer, Play } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -30,7 +29,7 @@ const TimerFillTheBlank: React.FC<TimerFillTheBlankProps> = ({
 	const [userInput, setUserInput] = useState('');
 	const [isSubmitted, setIsSubmitted] = useState(false);
 	const [isTimeUp, setIsTimeUp] = useState(false);
-	const timerRef = useRef<any>(null);
+	const timerRef = useRef<NodeJS.Timeout | null>(null);
 
 	const answered = isSubmitted || isTimeUp;
 
@@ -43,7 +42,6 @@ const TimerFillTheBlank: React.FC<TimerFillTheBlankProps> = ({
 	};
 
 	const isCorrect = checkCorrectness();
-	const parts = question.split('______');
 	const displayAnswer = Array.isArray(correctAnswer) ? correctAnswer[0] : correctAnswer;
 
 	useEffect(() => {
@@ -69,15 +67,6 @@ const TimerFillTheBlank: React.FC<TimerFillTheBlankProps> = ({
 		if (onComplete) onComplete(isCorrect, isCorrect ? weight : 0);
 	};
 
-	const handleReset = () => {
-		setUserInput('');
-		setIsSubmitted(false);
-		setIsTimeUp(false);
-		setIsStarted(false);
-		setTimeLeft(timerSeconds);
-		if (onComplete) onComplete(false);
-	};
-
 	const formatTime = (seconds: number) => {
 		const mins = Math.floor(seconds / 60);
 		const secs = seconds % 60;
@@ -101,53 +90,67 @@ const TimerFillTheBlank: React.FC<TimerFillTheBlankProps> = ({
 				)}
 			</div>
 
-			<div className="space-y-4">
+			<div className="space-y-6">
 				{!isStarted ? (
 					<div className="py-8 flex flex-col items-center justify-center space-y-4 bg-white rounded-xl border border-dashed border-gray-300">
-						<p className="text-sm text-gray-500 text-center max-w-xs">У вас будет {timerSeconds} секунд на выполнение этого задания.</p>
-						<button onClick={handleStart} className="flex items-center gap-2 px-8 py-3 bg-ubuntu-orange text-white rounded-xl font-bold hover:bg-[#ff632d] transition-all transform active:scale-95 shadow-md">
-							<Play size={18} fill="currentColor" /> Начать тест
+						<p className="text-gray-500 text-sm">У вас будет {timerSeconds} секунд на выполнение этого задания.</p>
+						<button
+							onClick={handleStart}
+							className="flex items-center gap-2 px-6 py-3 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-xl font-bold transition-all shadow-md active:scale-95"
+						>
+							<Play size={18} />
+							Начать тест
 						</button>
 					</div>
 				) : (
-					<div className="space-y-6">
-						<div className="font-semibold text-gray-800 text-base leading-relaxed">
-							{parts[0]}
-							<form onSubmit={handleSubmit} className="inline-block mx-2">
-								<input
-									type="text"
-									value={userInput}
-									onChange={(e) => !answered && setUserInput(e.target.value)}
-									disabled={answered}
-									placeholder="..."
-									className={cn(
-										"border-b-2 px-2 py-0.5 outline-none transition-colors text-center font-bold",
-										!answered && "border-ubuntu-orange/30 focus:border-ubuntu-orange bg-white/50",
-										isSubmitted && isCorrect && "border-green-500 text-green-600 bg-green-50",
-										(isSubmitted && !isCorrect || isTimeUp) && "border-red-500 text-red-600 bg-red-50"
+					<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-inner">
+						<div className="text-lg text-gray-800 leading-relaxed flex flex-wrap items-center gap-x-2 gap-y-4">
+							{question.split(/____+/).map((part, index, array) => (
+								<React.Fragment key={index}>
+									<span>{part}</span>
+									{index < array.length - 1 && (
+										<input
+											type="text"
+											value={userInput}
+											onChange={(e) => setUserInput(e.target.value)}
+											disabled={isSubmitted || isTimeUp}
+											placeholder="..."
+											className={cn(
+												"min-w-[120px] px-3 py-1 border-b-2 transition-all outline-none text-center font-bold",
+												isSubmitted
+													? (isCorrect ? "border-green-500 text-green-600 bg-green-50" : "border-red-500 text-red-600 bg-red-50")
+													: "border-ubuntu-orange focus:bg-orange-50"
+											)}
+										/>
 									)}
-									style={{ width: `${Math.max(displayAnswer.length + 2, 8)}ch` }}
-								/>
-							</form>
-							{parts[1]}
+								</React.Fragment>
+							))}
 						</div>
 
-						{!answered ? (
-							<div className="flex justify-end">
+						{(isSubmitted || isTimeUp) && (
+							<div className={cn(
+								"mt-6 p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2",
+								isCorrect ? "bg-green-50 text-green-700 border border-green-100" : "bg-red-50 text-red-700 border border-red-100"
+							)}>
+								{isCorrect ? <CheckCircle className="shrink-0 mt-0.5" size={18} /> : <XCircle className="shrink-0 mt-0.5" size={18} />}
+								<div>
+									<p className="font-bold">{isCorrect ? 'Правильно!' : isTimeUp ? 'Время вышло!' : 'Не совсем так'}</p>
+									<p className="text-sm opacity-90">
+										Правильный ответ: <span className="font-mono font-bold">{displayAnswer}</span>
+									</p>
+								</div>
+							</div>
+						)}
+
+						{!isSubmitted && !isTimeUp && (
+							<div className="mt-8 flex justify-end">
 								<button
 									onClick={() => handleSubmit()}
 									disabled={!userInput.trim()}
-									className="px-6 py-2 bg-ubuntu-orange text-white rounded-lg font-bold hover:bg-[#ff632d] disabled:opacity-50 transition-colors text-sm shadow-sm"
+									className="px-8 py-3 bg-ubuntu-orange hover:bg-[#ff632d] disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-bold transition-all shadow-md active:scale-95"
 								>
 									Проверить
 								</button>
-							</div>
-						) : (
-							<div className="flex items-center justify-between pt-2">
-								<p className={cn("text-sm font-medium", isCorrect ? "text-green-700" : "text-red-700")}>
-									{isCorrect ? '✓ Верно!' : isTimeUp ? '✗ Время вышло!' : `✗ Неверно. Ответ: ${displayAnswer}`}
-								</p>
-								<button onClick={handleReset} className="text-xs text-ubuntu-orange hover:underline focus:outline-none">Попробовать снова</button>
 							</div>
 						)}
 					</div>

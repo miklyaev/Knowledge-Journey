@@ -28,7 +28,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ onJourneyGenerated, resetTrig
 
   useEffect(() => {
     if (resetTrigger && resetTrigger > 0) {
-      setResponse(`Мы изучаем тему: ${topic || 'выбранную ранее'}. Что вы еще хотите узнать или уточнить по этой теме?`);
+      // Вместо очистки добавляем вопрос в конец текущего ответа
+      setResponse(prev => prev + `\n\n---\nМы изучаем тему: ${topic || 'выбранную ранее'}. Что вы еще хотите узнать или уточнить по этой теме?`);
       setPrompt('');
     }
   }, [resetTrigger, topic]);
@@ -194,7 +195,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ onJourneyGenerated, resetTrig
       </div>
 
       {/* Input Area */}
-      <div className="relative group">
+      <div className="relative group" id="ai-assistant-input-area">
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}

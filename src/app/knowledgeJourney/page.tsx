@@ -38,7 +38,13 @@ const KnowledgeJourney = () => {
 		setJourney(null);
 		setIsFinished(false);
 		setResetTrigger(prev => prev + 1);
-		window.scrollTo({ top: 0, behavior: 'smooth' });
+		// Скролл к нижней части чата (к полю ввода)
+		setTimeout(() => {
+			const element = document.getElementById('ai-assistant-input-area');
+			if (element) {
+				element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}
+		}, 100);
 	};
 
 	const handleFinish = () => {
@@ -90,7 +96,7 @@ const KnowledgeJourney = () => {
 							</div>
 						)}
 
-						<div className="w-full">
+						<div className="w-full" id="ai-assistant-container">
 							<AIAssistant
 								onJourneyGenerated={handleJourneyGenerated}
 								resetTrigger={resetTrigger}
