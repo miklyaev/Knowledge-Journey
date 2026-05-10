@@ -86,11 +86,13 @@ const TimerFillTheBlank: React.FC<TimerFillTheBlankProps> = ({
 
 	return (
 		<div className={cn("bg-[#f6f6f6] border border-gray-300 rounded-2xl p-6 space-y-6 shadow-sm relative overflow-hidden", className)}>
-			<div className="flex items-center justify-between border-b border-gray-200 pb-4">
-				<div className="flex items-center gap-2 text-gray-800">
-					<HelpCircle size={20} className="text-ubuntu-orange" />
-					<span className="font-bold text-gray-800">Заполнение пропусков</span>
-				</div>
+			<div className={cn("flex items-center border-b border-gray-200 pb-4", isStarted ? "justify-between" : "justify-end")}>
+				{isStarted && (
+					<div className="flex items-center gap-2 text-gray-800">
+						<HelpCircle size={20} className="text-ubuntu-orange" />
+						<span className="font-bold text-gray-800">Вставь пропущенное слово</span>
+					</div>
+				)}
 				{isStarted && (
 					<div className={cn("flex items-center gap-2 px-3 py-1 rounded-full font-mono font-bold transition-colors", timeLeft <= 10 ? "bg-red-100 text-red-600 animate-pulse" : "bg-gray-200 text-gray-700")}>
 						<Timer size={16} />

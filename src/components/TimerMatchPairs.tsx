@@ -110,11 +110,13 @@ const TimerMatchPairs: React.FC<TimerMatchPairsProps> = ({
 
   return (
     <div className={cn("bg-white border border-blue-100 rounded-2xl p-6 space-y-6 shadow-sm relative overflow-hidden", className)}>
-      <div className="flex items-center justify-between border-b border-blue-50 pb-4">
-        <div className="flex items-center gap-2 text-blue-600">
-          <HelpCircle size={20} />
-          <span className="font-bold text-gray-800">Сопоставление с таймером</span>
-        </div>
+      <div className={cn("flex items-center border-b border-blue-50 pb-4", isStarted ? "justify-between" : "justify-end")}>
+        {isStarted && (
+          <div className="flex items-center gap-2 text-blue-600">
+            <HelpCircle size={20} />
+            <span className="font-bold text-gray-800">Сопоставление пар</span>
+          </div>
+        )}
         {isStarted && (
           <div className={cn("flex items-center gap-2 px-3 py-1 rounded-full font-mono font-bold transition-colors", timeLeft <= 10 ? "bg-red-100 text-red-600 animate-pulse" : "bg-blue-50 text-blue-600")}>
             <Timer size={16} />

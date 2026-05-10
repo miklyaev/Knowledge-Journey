@@ -127,7 +127,7 @@ const KnowledgeJourney = () => {
 									</div>
 								) : (
 									<div className="w-full max-w-3xl mx-auto">
-										<div className="mb-6 flex items-center justify-between px-2">
+										<div className="mb-3 flex items-center justify-between px-2">
 											<div className="flex items-center gap-2 text-gray-600">
 												<Sparkles size={18} className="text-ubuntu-orange" />
 												<span className="text-sm font-bold uppercase tracking-wider">
