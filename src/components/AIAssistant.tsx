@@ -1,7 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Send, Bot, Sparkles, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { Send, Bot, Sparkles, Loader2 } from 'lucide-react';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 type AIProvider = 'yandexgpt' | 'gigachat';
 type BackendStatus = 'checking' | 'online' | 'offline';
@@ -71,101 +77,107 @@ const AIAssistant: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col w-full max-w-2xl mx-auto p-4 bg-slate-900/50 border border-slate-700 rounded-xl shadow-2xl backdrop-blur-sm">
+    <div className="flex flex-col w-full mx-auto p-6 bg-[#f6f6f6] border border-gray-300 rounded-2xl shadow-sm">
       {/* Header & Toggle */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 text-blue-400">
-            <Bot size={24} />
-            <h2 className="text-xl font-bold tracking-tight">ИИ Помощник</h2>
+          <div className="flex items-center gap-2 text-gray-800">
+            <Bot size={22} className="text-ubuntu-orange" />
+            <h2 className="text-lg font-bold tracking-tight">ИИ Помощник</h2>
           </div>
           <div className="flex items-center gap-1.5">
             {backendStatus === 'checking' && (
               <>
-                <div className="w-2 h-2 rounded-full bg-slate-500 animate-pulse" />
-                <span className="text-[10px] text-slate-500 uppercase font-medium">Проверка связи...</span>
+                <div className="w-2 h-2 rounded-full bg-gray-400 animate-pulse" />
+                <span className="text-[10px] text-gray-500 uppercase font-bold">Связь...</span>
               </>
             )}
             {backendStatus === 'online' && (
               <>
-                <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                <span className="text-[10px] text-green-500 uppercase font-medium">Сервер онлайн</span>
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="text-[10px] text-green-600 uppercase font-bold">Нейросеть готова</span>
               </>
             )}
             {backendStatus === 'offline' && (
               <>
-                <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
-                <span className="text-[10px] text-red-500 uppercase font-medium">Сервер недоступен</span>
+                <div className="w-2 h-2 rounded-full bg-red-500" />
+                <span className="text-[10px] text-red-600 uppercase font-bold">Оффлайн</span>
               </>
             )}
           </div>
         </div>
 
-        <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">          <button
-          onClick={() => setProvider('yandexgpt')}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${provider === 'yandexgpt'
-            ? 'bg-blue-600 text-white shadow-lg'
-            : 'text-slate-400 hover:text-slate-200'
-            }`}
-          aria-label="Выбрать YandexGPT"
-        >
-          <Sparkles size={16} />
-          YandexGPT
-        </button>
+        <div className="flex bg-gray-200/80 p-1 rounded-xl border border-gray-300 shadow-inner relative w-64">
+          <div
+            className={cn(
+              "absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-lg shadow-md transition-all duration-300 ease-out border border-gray-100",
+              provider === 'yandexgpt' ? "left-1" : "left-[calc(50%+2px)]"
+            )}
+          />
+          <button
+            onClick={() => setProvider('yandexgpt')}
+            className={cn(
+              "relative z-10 flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2",
+              provider === 'yandexgpt' ? "text-ubuntu-orange" : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            <Sparkles size={14} />
+            YandexGPT
+          </button>
           <button
             onClick={() => setProvider('gigachat')}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${provider === 'gigachat'
-              ? 'bg-green-600 text-white shadow-lg'
-              : 'text-slate-400 hover:text-slate-200'
-              }`}
-            aria-label="Выбрать GigaChat"
+            className={cn(
+              "relative z-10 flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2",
+              provider === 'gigachat' ? "text-ubuntu-orange" : "text-gray-500 hover:text-gray-700"
+            )}
           >
-            <Bot size={16} />
+            <Bot size={14} />
             GigaChat
           </button>
         </div>
       </div>
 
       {/* Response Area */}
-      <div className="min-h-[200px] mb-4 p-4 bg-slate-950/50 border border-slate-800 rounded-lg overflow-y-auto">
+      <div className="min-h-[200px] mb-6 p-5 bg-white border border-gray-200 rounded-xl overflow-y-auto shadow-inner">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-500">
-            <Loader2 className="animate-spin" size={32} />
-            <p className="text-sm animate-pulse">Нейросеть думает...</p>
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400">
+            <Loader2 className="animate-spin text-ubuntu-orange" size={28} />
+            <p className="text-xs font-medium animate-pulse">Обработка запроса...</p>
           </div>
         ) : response ? (
-          <div className="prose prose-invert max-w-none">
-            <p className="whitespace-pre-wrap text-slate-200 leading-relaxed">{response}</p>
+          <div className="prose prose-slate max-w-none">
+            <p className="whitespace-pre-wrap text-gray-700 leading-relaxed text-sm">{response}</p>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full text-slate-600 italic">
-            Задайте вопрос преподавателю...
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
+            <Sparkles size={32} className="opacity-10" />
+            <p className="text-sm italic">Задайте вопрос по учебному материалу...</p>
           </div>
         )}
       </div>
 
       {/* Input Area */}
-      <div className="relative">
+      <div className="relative group">
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Введите ваш вопрос..."
-          className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-4 pr-12 py-3 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
-          rows={3}
+          className="w-full bg-white border border-gray-300 rounded-xl pl-4 pr-14 py-4 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-ubuntu-orange/20 focus:border-ubuntu-orange transition-all resize-none shadow-sm"
+          rows={2}
         />
         <button
           onClick={handleSend}
           disabled={isLoading || !prompt.trim()}
-          className="absolute right-3 bottom-3 p-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-md transition-colors shadow-lg"
-          aria-label="Отправить запрос"
+          className="absolute right-3 bottom-3 p-2.5 bg-ubuntu-orange hover:bg-[#ff632d] disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-lg transition-all shadow-md active:scale-95"
+          aria-label="Отправить"
         >
-          <Send size={20} />
+          <Send size={18} />
         </button>
       </div>
 
-      <div className="mt-3 text-[10px] text-slate-500 text-center uppercase tracking-widest">
-        Powered by {provider === 'yandexgpt' ? 'Yandex Cloud' : 'Sber GigaChat'}
+      <div className="mt-4 text-[9px] text-gray-400 text-center uppercase tracking-[0.2em] font-bold">
+        Интеллектуальный модуль: {provider === 'yandexgpt' ? 'Yandex Cloud' : 'Sber GigaChat'}
       </div>
     </div>
   );

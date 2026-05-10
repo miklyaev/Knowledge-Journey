@@ -96,15 +96,15 @@ const TimerMultipleChoice: React.FC<TimerMultipleChoiceProps> = ({
 	};
 
 	return (
-		<div className={cn("bg-white border border-blue-100 rounded-2xl p-6 space-y-6 shadow-sm relative overflow-hidden", className)}>
-			<div className="flex items-center justify-between border-b border-blue-50 pb-4">
-				<div className="flex items-center gap-2 text-blue-600">
-					<HelpCircle size={20} />
-					<span className="font-bold text-gray-800">Множественный выбор с таймером</span>
+		<div className={cn("bg-[#f6f6f6] border border-gray-300 rounded-2xl p-6 space-y-6 shadow-sm relative overflow-hidden", className)}>
+			<div className="flex items-center justify-between border-b border-gray-200 pb-4">
+				<div className="flex items-center gap-2 text-gray-800">
+					<HelpCircle size={20} className="text-ubuntu-orange" />
+					<span className="font-bold text-gray-800">Множественный выбор</span>
 				</div>				{isStarted && (
 					<div className={cn(
 						"flex items-center gap-2 px-3 py-1 rounded-full font-mono font-bold transition-colors",
-						timeLeft <= 10 ? "bg-red-100 text-red-600 animate-pulse" : "bg-blue-50 text-blue-600"
+						timeLeft <= 10 ? "bg-red-100 text-red-600 animate-pulse" : "bg-gray-200 text-gray-700"
 					)}>
 						<Timer size={16} />
 						<span>{formatTime(timeLeft)}</span>
@@ -115,13 +115,12 @@ const TimerMultipleChoice: React.FC<TimerMultipleChoiceProps> = ({
 			<div className="space-y-4">
 				<p className="font-semibold text-gray-800 text-base leading-snug">{question}</p>
 				{!isStarted ? (
-					<div className="py-8 flex flex-col items-center justify-center space-y-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+					<div className="py-8 flex flex-col items-center justify-center space-y-4 bg-white rounded-xl border border-dashed border-gray-300">
 						<p className="text-sm text-gray-500 text-center max-w-xs">
 							У вас будет {timerSeconds} секунд на выполнение этого задания.
-							Варианты ответов появятся после нажатия кнопки.
 						</p>						<button
 							onClick={handleStart}
-							className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all transform hover:scale-105 active:scale-95 shadow-md"
+							className="flex items-center gap-2 px-8 py-3 bg-ubuntu-orange text-white rounded-xl font-bold hover:bg-[#ff632d] transition-all transform active:scale-95 shadow-md"
 						>
 							<Play size={18} fill="currentColor" />
 							Начать тест
@@ -134,18 +133,18 @@ const TimerMultipleChoice: React.FC<TimerMultipleChoiceProps> = ({
 								const isCurrentCorrect = correctAnswers.includes(index);
 								const isCurrentSelected = selected.includes(index);
 
-								let style = 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer';
+								let style = 'border-gray-200 bg-white text-gray-700 hover:border-ubuntu-orange/50 hover:bg-ubuntu-orange/5 cursor-pointer';
 
 								if (answered) {
 									if (isCurrentCorrect) {
-										style = 'border-green-400 bg-green-50 text-green-800 cursor-default';
+										style = 'border-green-500 bg-green-50 text-green-800 cursor-default';
 									} else if (isCurrentSelected && !isCurrentCorrect) {
-										style = 'border-red-400 bg-red-50 text-red-800 cursor-default';
+										style = 'border-red-500 bg-red-50 text-red-800 cursor-default';
 									} else {
 										style = 'border-gray-200 bg-white text-gray-400 cursor-default opacity-60';
 									}
 								} else if (isCurrentSelected) {
-									style = 'border-blue-500 bg-blue-50/50 text-blue-700';
+									style = 'border-ubuntu-orange bg-ubuntu-orange/10 text-ubuntu-orange';
 								}
 
 								return (
@@ -159,7 +158,7 @@ const TimerMultipleChoice: React.FC<TimerMultipleChoiceProps> = ({
 									>
 										<div className={cn(
 											"w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
-											isCurrentSelected ? 'bg-blue-500 border-blue-500' : 'border-current'
+											isCurrentSelected ? 'bg-ubuntu-orange border-ubuntu-orange' : 'border-gray-300'
 										)}>
 											{isCurrentSelected && <Check size={14} className="text-white stroke-[3]" />}
 										</div>
@@ -179,7 +178,7 @@ const TimerMultipleChoice: React.FC<TimerMultipleChoiceProps> = ({
 							<button
 								onClick={handleSubmit}
 								disabled={selected.length === 0}
-								className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
+								className="w-full py-3 bg-ubuntu-orange text-white rounded-xl font-bold text-sm hover:bg-[#ff632d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
 							>
 								Проверить ответ
 							</button>
@@ -190,14 +189,14 @@ const TimerMultipleChoice: React.FC<TimerMultipleChoiceProps> = ({
 									isCorrect ? "text-green-700" : "text-red-700"
 								)}>
 									{isCorrect
-										? '✓ Верно! Вы уложились в срок и дали правильный ответ.'
+										? '✓ Верно!'
 										: isTimeUp
-											? '✗ Время вышло! Вы не успели завершить тест.'
-											: '✗ Не совсем верно. Посмотрите правильные варианты.'}
+											? '✗ Время вышло!'
+											: '✗ Не совсем верно.'}
 								</p>
 								<button
 									onClick={handleReset}
-									className="text-xs text-blue-600 hover:text-blue-800 underline underline-offset-2 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1"
+									className="text-xs text-ubuntu-orange hover:underline underline-offset-2 focus:outline-none"
 								>
 									Попробовать снова
 								</button>
