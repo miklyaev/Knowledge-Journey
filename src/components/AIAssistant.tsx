@@ -14,14 +14,24 @@ type BackendStatus = 'checking' | 'online' | 'offline';
 
 interface AIAssistantProps {
   onJourneyGenerated?: (journey: any[]) => void;
+  resetTrigger?: number;
+  topic?: string;
+  onTopicDetected?: (topic: string) => void;
 }
 
-const AIAssistant: React.FC<AIAssistantProps> = ({ onJourneyGenerated }) => {
+const AIAssistant: React.FC<AIAssistantProps> = ({ onJourneyGenerated, resetTrigger, topic, onTopicDetected }) => {
   const [prompt, setPrompt] = useState('');
   const [provider, setProvider] = useState<AIProvider>('yandexgpt');
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState<BackendStatus>('checking');
+
+  useEffect(() => {
+    if (resetTrigger && resetTrigger > 0) {
+      setResponse(`Мы изучаем тему: ${topic || 'выбранную ранее'}. Что вы еще хотите узнать или уточнить по этой теме?`);
+      setPrompt('');
+    }
+  }, [resetTrigger, topic]);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -38,12 +48,17 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ onJourneyGenerated }) => {
     };
 
     checkStatus();
-    const interval = setInterval(checkStatus, 30000); // Проверка каждые 30 секунд
+    const interval = setInterval(checkStatus, 30000);
     return () => clearInterval(interval);
   }, []);
 
   const handleSend = async () => {
     if (!prompt.trim() || backendStatus !== 'online') return;
+
+    // Если тема еще не задана, считаем текущий промпт темой
+    if (!topic && onTopicDetected) {
+      onTopicDetected(prompt.trim());
+    }
 
     setIsLoading(true);
     setResponse('');

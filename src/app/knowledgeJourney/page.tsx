@@ -15,6 +15,8 @@ const KnowledgeJourney = () => {
 	const [journey, setJourney] = useState<any[] | null>(null);
 	const [currentStep, setCurrentStep] = useState(0);
 	const [isFinished, setIsFinished] = useState(false);
+	const [resetTrigger, setResetTrigger] = useState(0);
+	const [topic, setTopic] = useState('');
 
 	const handleJourneyGenerated = (data: any[]) => {
 		setJourney(data);
@@ -22,7 +24,7 @@ const KnowledgeJourney = () => {
 		setIsFinished(false);
 	};
 
-	const handleStepComplete = (isCorrect: boolean, timeSpent: number) => {
+	const handleStepComplete = () => {
 		if (!journey) return;
 
 		if (currentStep < journey.length - 1) {
@@ -35,6 +37,7 @@ const KnowledgeJourney = () => {
 	const handleContinue = () => {
 		setJourney(null);
 		setIsFinished(false);
+		setResetTrigger(prev => prev + 1);
 		window.scrollTo({ top: 0, behavior: 'smooth' });
 	};
 
@@ -88,7 +91,12 @@ const KnowledgeJourney = () => {
 						)}
 
 						<div className="w-full">
-							<AIAssistant onJourneyGenerated={handleJourneyGenerated} />
+							<AIAssistant
+								onJourneyGenerated={handleJourneyGenerated}
+								resetTrigger={resetTrigger}
+								topic={topic}
+								onTopicDetected={setTopic}
+							/>
 						</div>
 
 						{journey && (
