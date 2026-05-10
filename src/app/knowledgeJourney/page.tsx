@@ -17,15 +17,21 @@ const KnowledgeJourney = () => {
 	const [isFinished, setIsFinished] = useState(false);
 	const [resetTrigger, setResetTrigger] = useState(0);
 	const [topic, setTopic] = useState('');
+	const [totalScore, setTotalScore] = useState(0);
 
 	const handleJourneyGenerated = (data: any[]) => {
 		setJourney(data);
 		setCurrentStep(0);
 		setIsFinished(false);
+		setTotalScore(0);
 	};
 
-	const handleStepComplete = () => {
+	const handleStepComplete = (isCorrect: boolean, points: number = 0) => {
 		if (!journey) return;
+
+		if (isCorrect) {
+			setTotalScore(prev => prev + points);
+		}
 
 		if (currentStep < journey.length - 1) {
 			setCurrentStep(currentStep + 1);
@@ -55,9 +61,26 @@ const KnowledgeJourney = () => {
 		if (!journey) return null;
 		const step = journey[currentStep];
 
+		// Назначаем веса в зависимости от типа компонента
+		const getWeight = (type: string) => {
+			switch (type) {
+				case "true-false": return 2;
+				case "single-choice": return 3;
+				case "multiple-choice": return 5;
+				case "fill-the-blank": return 6;
+				case "order-steps": return 7;
+				case "match-pairs": return 8;
+				case "free-response": return 10;
+				default: return 1;
+			}
+		};
+
+		const weight = step.weight || getWeight(step.type);
+
 		const commonProps = {
-			onComplete: handleStepComplete,
+			onComplete: (isCorrect: boolean) => handleStepComplete(isCorrect, weight),
 			timerSeconds: step.timerSeconds || 30,
+			weight: weight
 		};
 
 		switch (step.type) {
@@ -113,6 +136,11 @@ const KnowledgeJourney = () => {
 											<CheckCircle2 size={32} />
 										</div>
 										<h3 className="text-2xl font-bold text-gray-800 mb-2">Блок заданий пройден!</h3>
+										<div className="mb-6 px-6 py-2 bg-ubuntu-orange/10 border border-ubuntu-orange/20 rounded-full">
+											<span className="text-ubuntu-orange font-bold text-lg">
+												Набрано баллов: {totalScore}
+											</span>
+										</div>
 										<p className="text-gray-500 text-center mb-8 max-w-md">
 											Вы успешно справились с текущим этапом. Хотите углубиться в тему или завершить сессию?
 										</p>
