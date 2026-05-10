@@ -103,8 +103,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ onJourneyGenerated }) => {
       {/* Header & Toggle */}
       <div className="flex items-end justify-between mb-6">
         <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 text-gray-800">
-            <Bot size={22} className="text-ubuntu-orange" />
+          <div className="flex items-end gap-2 text-gray-800">
+            <Bot size={22} className="text-ubuntu-orange mb-[10px]" />
             <h2 className="text-lg font-bold tracking-tight leading-none">Интерактивный помощник обучения</h2>
           </div>
           <div className="flex items-center gap-1.5">
