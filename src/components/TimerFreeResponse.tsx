@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { HelpCircle, Timer, Play, Send, MessageSquare } from 'lucide-react';
+import { HelpCircle, Timer, Play, Send, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -9,60 +9,68 @@ function cn(...inputs: ClassValue[]) {
 
 interface TimerFreeResponseProps {
 	question: string;
-	placeholder?: string;
 	timerSeconds?: number;
-	weight?: number;
-	onComplete?: (isCorrect: boolean, points?: number, response?: string) => void;
+	onComplete?: (isCorrect: boolean, points?: number) => void;
 	className?: string;
 }
 
 const TimerFreeResponse: React.FC<TimerFreeResponseProps> = ({
 	question,
-	placeholder = "Введите ваш развернутый ответ здесь...",
 	timerSeconds = 120,
-	weight = 5,
 	onComplete,
 	className = "my-0",
 }) => {
 	const [isStarted, setIsStarted] = useState(false);
 	const [timeLeft, setTimeLeft] = useState(timerSeconds);
-	const [response, setResponse] = useState('');
-	const [isSubmitted, setIsSubmitted] = useState(false);
+	const [userInput, setUserInput] = useState('');
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [result, setResult] = useState<{ score: number; feedback: string } | null>(null);
 	const [isTimeUp, setIsTimeUp] = useState(false);
-	const timerRef = useRef<any>(null);
+	const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-	const answered = isSubmitted || isTimeUp;
+	const answered = result !== null || isTimeUp;
 
 	useEffect(() => {
-		if (isStarted && timeLeft > 0 && !isSubmitted) {
+		if (isStarted && timeLeft > 0 && !answered && !isSubmitting) {
 			timerRef.current = setInterval(() => {
 				setTimeLeft((prev) => prev - 1);
 			}, 1000);
-		} else if (timeLeft === 0 && !isSubmitted && isStarted) {
+		} else if (timeLeft === 0 && !answered && isStarted) {
 			setIsTimeUp(true);
-			if (onComplete) onComplete(false, 0, response);
+			if (onComplete) onComplete(false, 2);
 			if (timerRef.current) clearInterval(timerRef.current);
 		}
 		return () => { if (timerRef.current) clearInterval(timerRef.current); };
-	}, [isStarted, timeLeft, isSubmitted, onComplete, response]);
+	}, [isStarted, timeLeft, answered, isSubmitting, onComplete]);
 
 	const handleStart = () => setIsStarted(true);
 
-	const handleSubmit = () => {
-		if (answered || !response.trim()) return;
-		setIsSubmitted(true);
-		if (timerRef.current) clearInterval(timerRef.current);
-		// Для свободного ответа "правильность" обычно проверяется позже (AI или учителем),
-		// но здесь мы помечаем как true, если ответ дан, передавая вес.
-		if (onComplete) onComplete(true, weight, response);
-	};
+	const handleSubmit = async () => {
+		if (answered || isSubmitting || !userInput.trim()) return;
 
-	const handleReset = () => {
-		setResponse('');
-		setIsSubmitted(false);
-		setIsTimeUp(false);
-		setIsStarted(false);
-		setTimeLeft(timerSeconds);
+		setIsSubmitting(true);
+		if (timerRef.current) clearInterval(timerRef.current);
+
+		try {
+			const res = await fetch('/api/ai/evaluate', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ question, answer: userInput }),
+			});
+
+			const data = await res.json();
+			setResult(data);
+
+			if (onComplete) {
+				onComplete(data.score > 5, data.score);
+			}
+		} catch (error) {
+			console.error('Evaluation error:', error);
+			setResult({ score: 2, feedback: "Не удалось получить оценку от ИИ. Начислено 2 балла." });
+			if (onComplete) onComplete(false, 2);
+		} finally {
+			setIsSubmitting(false);
+		}
 	};
 
 	const formatTime = (seconds: number) => {
@@ -72,64 +80,88 @@ const TimerFreeResponse: React.FC<TimerFreeResponseProps> = ({
 	};
 
 	return (
-		<div className={cn("bg-white border border-blue-100 rounded-2xl p-6 space-y-6 shadow-sm relative overflow-hidden", className)}>
-			<div className="flex items-center justify-between border-b border-blue-50 pb-4">
-				<div className="flex items-center gap-2 text-blue-600">
-					<MessageSquare size={20} />
-					<span className="font-bold text-gray-800">Развернутый ответ с таймером</span>
-				</div>
+		<div className={cn("bg-[#f6f6f6] border border-gray-300 rounded-2xl p-6 space-y-6 shadow-sm relative overflow-hidden", className)}>
+			<div className={cn("flex items-center border-b border-gray-200 pb-4", isStarted ? "justify-between" : "justify-end")}>
 				{isStarted && (
-					<div className={cn("flex items-center gap-2 px-3 py-1 rounded-full font-mono font-bold transition-colors", timeLeft <= 20 ? "bg-red-100 text-red-600 animate-pulse" : "bg-blue-50 text-blue-600")}>
+					<div className="flex items-center gap-2 text-gray-800">
+						<HelpCircle size={20} className="text-ubuntu-orange" />
+						<span className="font-bold text-gray-800">Развернутый ответ</span>
+					</div>
+				)}
+				{isStarted && !result && (
+					<div className={cn("flex items-center gap-2 px-3 py-1 rounded-full font-mono font-bold transition-colors", timeLeft <= 20 ? "bg-red-100 text-red-600 animate-pulse" : "bg-gray-200 text-gray-700")}>
 						<Timer size={16} />
 						<span>{formatTime(timeLeft)}</span>
 					</div>
 				)}
 			</div>
 
-			<div className="space-y-4">
-				<p className="font-semibold text-gray-800 text-base leading-snug">{question}</p>
+			<div className="space-y-6">
 				{!isStarted ? (
-					<div className="py-8 flex flex-col items-center justify-center space-y-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-						<p className="text-sm text-gray-500 text-center max-w-xs">
-							У вас будет {formatTime(timerSeconds)} на написание развернутого ответа.
+					<div className="py-8 flex flex-col items-center justify-center space-y-4 bg-white rounded-xl border border-dashed border-gray-300">
+						<p className="text-gray-500 text-sm text-center px-6">
+							Это творческое задание. Ваш ответ будет проверен нейросетью.<br />
+							У вас будет {timerSeconds} секунд.
 						</p>
-						<button onClick={handleStart} className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all transform hover:scale-105 active:scale-95 shadow-md">
-							<Play size={18} fill="currentColor" /> Начать
+						<button
+							onClick={handleStart}
+							className="flex items-center gap-2 px-6 py-3 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-xl font-bold transition-all shadow-md active:scale-95"
+						>
+							<Play size={18} />
+							Начать выполнение
 						</button>
 					</div>
 				) : (
-					<div className="space-y-4">
+					<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-inner">
+						<p className="text-lg font-bold text-gray-800 mb-4">{question}</p>
+
 						<textarea
-							value={response}
-							onChange={(e) => !answered && setResponse(e.target.value)}
-							disabled={answered}
-							placeholder={placeholder}
-							className={cn(
-								"w-full h-40 p-4 rounded-xl border-2 outline-none transition-all resize-none text-sm",
-								!answered && "border-blue-100 focus:border-blue-500 bg-white",
-								isSubmitted && "border-green-500 bg-green-50/30",
-								isTimeUp && "border-red-500 bg-red-50/30"
-							)}
+							value={userInput}
+							onChange={(e) => setUserInput(e.target.value)}
+							disabled={answered || isSubmitting}
+							placeholder="Введите ваш ответ здесь..."
+							className="w-full min-h-[150px] p-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-ubuntu-orange/20 focus:border-ubuntu-orange transition-all resize-none text-gray-700"
 						/>
-						
-						{!answered ? (
-							<div className="flex justify-between items-center">
-								<span className="text-xs text-gray-400">Символов: {response.length}</span>
+
+						{isSubmitting && (
+							<div className="mt-4 flex items-center justify-center gap-3 text-ubuntu-orange">
+								<Loader2 className="animate-spin" size={20} />
+								<span className="text-sm font-bold animate-pulse">Нейросеть проверяет ваш ответ...</span>
+							</div>
+						)}
+
+						{result && (
+							<div className={cn(
+								"mt-6 p-5 rounded-xl border animate-in fade-in slide-in-from-top-2",
+								result.score > 5 ? "bg-green-50 border-green-100 text-green-800" : "bg-orange-50 border-orange-100 text-orange-800"
+							)}>
+								<div className="flex items-center justify-between mb-2">
+									<div className="flex items-center gap-2 font-bold">
+										{result.score > 5 ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+										<span>Оценка: {result.score} / 10</span>
+									</div>
+								</div>
+								<p className="text-sm leading-relaxed opacity-90">{result.feedback}</p>
+							</div>
+						)}
+
+						{isTimeUp && !result && (
+							<div className="mt-6 p-4 bg-red-50 border border-red-100 text-red-700 rounded-xl flex items-center gap-3">
+								<AlertCircle size={20} />
+								<span className="font-bold">Время вышло! Начислено 2 балла.</span>
+							</div>
+						)}
+
+						{!answered && !isSubmitting && (
+							<div className="mt-6 flex justify-end">
 								<button
 									onClick={handleSubmit}
-									disabled={!response.trim()}
-									className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm shadow-sm"
+									disabled={!userInput.trim()}
+									className="flex items-center gap-2 px-8 py-3 bg-ubuntu-orange hover:bg-[#ff632d] disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-bold transition-all shadow-md active:scale-95"
 								>
-									<Send size={16} />
-									Отправить ответ
+									<Send size={18} />
+									Отправить на проверку
 								</button>
-							</div>
-						) : (
-							<div className="flex items-center justify-between pt-2">
-								<p className={cn("text-sm font-medium", isSubmitted ? "text-green-700" : "text-red-700")}>
-									{isSubmitted ? '✓ Ответ отправлен на проверку.' : '✗ Время вышло! Ответ не был отправлен.'}
-								</p>
-								<button onClick={handleReset} className="text-xs text-blue-600 hover:text-blue-800 underline">Попробовать снова</button>
 							</div>
 						)}
 					</div>

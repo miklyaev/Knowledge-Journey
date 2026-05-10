@@ -223,6 +223,75 @@ app.post('/api/yandexgpt/generate', async (req, res) => {
 	}
 });
 
+// Эндпоинт для оценки свободного ответа через ИИ
+app.post('/api/ai/evaluate', async (req, res) => {
+	try {
+		const { question, answer, provider = 'yandexgpt' } = req.body;
+
+		if (!question || !answer) {
+			return res.status(400).json({ error: 'Question and answer are required' });
+		}
+
+		const evaluationSystemPrompt = `Ты — строгий, но справедливый преподаватель. Твоя задача — оценить ответ студента на вопрос по десятибалльной шкале (от 0 до 10).
+Правила оценки:
+1. Если ответ в корне неверный, бессмысленный или пустой — ставь 0 баллов.
+2. Если ответ частично верный, ставь от 3 до 6 баллов в зависимости от полноты.
+3. Если ответ верный и точный, ставь от 7 до 10 баллов.
+4. Ответ должен быть в формате JSON: {"score": число, "feedback": "краткое пояснение на русском языке"}.
+5. Не пиши ничего, кроме JSON.`;
+
+		const prompt = `Вопрос: ${question}\nОтвет студента: ${answer}`;
+
+		let content = "";
+
+		if (provider === 'gigachat' && gigachatClient) {
+			const response = await gigachatClient.chat({
+				model: 'GigaChat',
+				messages: [
+					{ role: 'system', content: evaluationSystemPrompt },
+					{ role: 'user', content: prompt }
+				],
+				temperature: 0.3
+			});
+			content = response.choices?.[0]?.message?.content || "";
+		} else {
+			// По умолчанию YandexGPT
+			const { YANDEXGPT_API_KEY, YANDEXGPT_FOLDER_ID } = process.env;
+			const url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
+			const response = await fetch(url, {
+				method: 'POST',
+				headers: {
+					'Authorization': `Api-Key ${YANDEXGPT_API_KEY}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					modelUri: `gpt://${YANDEXGPT_FOLDER_ID}/yandexgpt/latest`,
+					completionOptions: { temperature: 0.3, maxTokens: "1000" },
+					messages: [
+						{ role: "system", text: evaluationSystemPrompt },
+						{ role: "user", text: prompt }
+					]
+				})
+			});
+			const data = await response.json();
+			content = data.result?.alternatives?.[0]?.message?.text || "";
+		}
+
+		// Парсим JSON из ответа ИИ
+		const jsonMatch = content.match(/\{[\s\S]*\}/);
+		if (jsonMatch) {
+			const result = JSON.parse(jsonMatch[0]);
+			res.json(result);
+		} else {
+			throw new Error("Failed to parse AI evaluation");
+		}
+
+	} catch (error) {
+		console.error('Evaluation Error:', error);
+		res.status(500).json({ error: 'Failed to evaluate answer', score: 2, feedback: "Ошибка при связи с ИИ. Начислено минимальное количество баллов." });
+	}
+});
+
 // Health check endpoint (should be BEFORE the fallback route)
 app.get('/api/health', (req, res) => {
 	res.json({

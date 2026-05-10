@@ -9,6 +9,7 @@ import TimerFillTheBlank from "@/components/TimerFillTheBlank";
 import TimerMatchPairs from "@/components/TimerMatchPairs";
 import TimerTrueFalse from "@/components/TimerTrueFalse";
 import TimerOrderSteps from "@/components/TimerOrderSteps";
+import TimerFreeResponse from "@/components/TimerFreeResponse";
 import { Map, Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
 
 const KnowledgeJourney = () => {
@@ -96,6 +97,8 @@ const KnowledgeJourney = () => {
 				return <TimerTrueFalse {...step} {...commonProps} />;
 			case "order-steps":
 				return <TimerOrderSteps {...step} {...commonProps} />;
+			case "free-response":
+				return <TimerFreeResponse {...step} {...commonProps} />;
 			default:
 				return <div>Неизвестный тип задания: {step.type}</div>;
 		}
