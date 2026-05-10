@@ -19,23 +19,33 @@ const KnowledgeJourney = () => {
 	const [resetTrigger, setResetTrigger] = useState(0);
 	const [topic, setTopic] = useState('');
 	const [totalScore, setTotalScore] = useState(0);
+	const [isStepFinished, setIsStepFinished] = useState(false);
+	const [lastPoints, setLastPoints] = useState(0);
 
 	const handleJourneyGenerated = (data: any[]) => {
 		setJourney(data);
 		setCurrentStep(0);
 		setIsFinished(false);
 		setTotalScore(0);
+		setIsStepFinished(false);
 	};
 
 	const handleStepComplete = (isCorrect: boolean, points: number = 0) => {
 		if (!journey) return;
 
-		if (isCorrect) {
-			setTotalScore(prev => prev + points);
-		}
+		const earnedPoints = isCorrect ? points : (journey[currentStep].type === 'free-response' ? points : 0);
+		setLastPoints(earnedPoints);
+		setTotalScore(prev => prev + earnedPoints);
+		setIsStepFinished(true);
+	};
+
+	const handleNextStep = () => {
+		if (!journey) return;
 
 		if (currentStep < journey.length - 1) {
 			setCurrentStep(currentStep + 1);
+			setIsStepFinished(false);
+			setLastPoints(0);
 		} else {
 			setIsFinished(true);
 		}
@@ -186,6 +196,22 @@ const KnowledgeJourney = () => {
 											</div>
 										</div>
 										{renderStep()}
+
+										{isStepFinished && (
+											<div className="mt-6 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+												<div className="flex items-center gap-3 px-6 py-3 bg-white border border-ubuntu-orange/20 rounded-2xl shadow-sm">
+													<span className="text-gray-600 font-medium">Результат этапа:</span>
+													<span className="text-ubuntu-orange font-bold text-xl">+{lastPoints} баллов</span>
+												</div>
+												<button
+													onClick={handleNextStep}
+													className="group flex items-center gap-2 px-10 py-4 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-ubuntu-orange/20 active:scale-95"
+												>
+													{currentStep < journey.length - 1 ? "Следующий тест" : "Посмотреть итоги"}
+													<ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+												</button>
+											</div>
+										)}
 									</div>
 								)}
 							</div>
