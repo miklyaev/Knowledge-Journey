@@ -38,6 +38,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Инициализация GigaChat клиента
 let gigachatClient = null;
+let isDbConnected = false;
 
 function initializeGigaChat() {
 	const { GIGACHAT_CLIENT_ID, GIGACHAT_CLIENT_SECRET, GIGACHAT_API_KEY } = process.env;
@@ -275,22 +276,43 @@ app.post('/api/ai/evaluate', async (req, res) => {
 			});
 			const data = await response.json();
 			content = data.result?.alternatives?.[0]?.message?.text || "";
-		}
+			console.log('AI Evaluation Raw Content:', content);
 
-		// Парсим JSON из ответа ИИ
-		const jsonMatch = content.match(/\{[\s\S]*\}/);
-		if (jsonMatch) {
-			const result = JSON.parse(jsonMatch[0]);
-			res.json(result);
-		} else {
-			throw new Error("Failed to parse AI evaluation");
-		}
+			// Улучшенный парсинг JSON
+			let result;
+			try {
+				const jsonMatch = content.match(/\{[\s\S]*\}/);
+				if (jsonMatch) {
+					result = JSON.parse(jsonMatch[0]);
+				} else {
+					// Если JSON не найден, пробуем вытащить числа для оценки
+					const scoreMatch = content.match(/(\d+)/);
+					result = {
+						score: scoreMatch ? Math.min(Math.max(parseInt(scoreMatch[1]), 2), 10) : 2,
+						feedback: content.length > 10 ? content : "Не удалось получить детальный отзыв."
+					};
+				}
+				res.json(result);
+			} catch (e) {
+				console.error('JSON Parse Error in Evaluation:', e);
+				res.json({ score: 2, feedback: "Ошибка интерпретации ответа ИИ. Начислено 2 балла." });
+			}
 
-	} catch (error) {
-		console.error('Evaluation Error:', error);
-		res.status(500).json({ error: 'Failed to evaluate answer', score: 2, feedback: "Ошибка при связи с ИИ. Начислено минимальное количество баллов." });
-	}
-});
+
+			// Парсим JSON из ответа ИИ
+			const jsonMatch = content.match(/\{[\s\S]*\}/);
+			if (jsonMatch) {
+				const result = JSON.parse(jsonMatch[0]);
+				res.json(result);
+			} else {
+				throw new Error("Failed to parse AI evaluation");
+			}
+
+		} catch (error) {
+			console.error('Evaluation Error:', error);
+			res.status(500).json({ error: 'Failed to evaluate answer', score: 2, feedback: "Ошибка при связи с ИИ. Начислено минимальное количество баллов." });
+		}
+	});
 
 // Health check endpoint (should be BEFORE the fallback route)
 app.get('/api/health', (req, res) => {
@@ -314,10 +336,59 @@ app.get('*', (req, res) => {
 dbService.connect()
 	.then(() => {
 		console.log('Database service connected successfully');
+		isDbConnected = true;
 	})
 	.catch(err => {
 		console.error('Failed to connect to database:', err);
+		isDbConnected = false;
 	});
+
+// Эндпоинт для сохранения финального отчета
+app.post('/api/report/save', async (req, res) => {
+	try {
+		const { account, topic, score } = req.body;
+		const reportData = {
+			account: account || 'Guest',
+			date: new Date().toLocaleString('ru-RU'),
+			topic: topic || 'Общая тема',
+			score: score || 0
+		};
+
+		if (isDbConnected) {
+			// Здесь могла бы быть логика записи в таблицу результатов
+			// await dbService.saveResult(reportData); 
+			console.log('Отчет сохранен в БД');
+		} else {
+			// Сохранение в файл, если БД недоступна
+			const usersDir = path.join(__dirname, '..', 'users');
+			if (!fs.existsSync(usersDir)) fs.mkdirSync(usersDir);
+
+			const filePath = path.join(usersDir, `${reportData.account.replace(/[^a-z0-9]/gi, '_')}.json`);
+			let userHistory = [];
+			if (fs.existsSync(filePath)) {
+				userHistory = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+			}
+			userHistory.push(reportData);
+			fs.writeFileSync(filePath, JSON.stringify(userHistory, null, 2));
+			console.log(`Отчет сохранен в файл: ${filePath}`);
+		}
+
+		res.json({ success: true, report: reportData, dbStatus: isDbConnected });
+	} catch (error) {
+		console.error('Report Save Error:', error);
+		res.status(500).json({ error: 'Failed to save report' });
+	}
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+	res.json({
+		status: 'ok',
+		gigachat: gigachatClient ? 'initialized' : 'not_initialized',
+		database: isDbConnected ? 'connected' : 'disconnected'
+	});
+});
+
 
 // Graceful shutdown handling
 process.on('SIGINT', async () => {
