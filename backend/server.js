@@ -292,6 +292,47 @@ app.post('/api/ai/evaluate', async (req, res) => {
 	}
 });
 
+// Эндпоинт для сохранения финального отчета в JSON
+app.post('/api/save-report', (req, res) => {
+	try {
+		const report = req.body;
+		const { username } = report;
+
+		if (!username) {
+			return res.status(400).json({ error: 'Username is required' });
+		}
+
+		// Создаем папку для отчетов, если её нет
+		const reportsDir = path.join(__dirname, 'reports');
+		if (!fs.existsSync(reportsDir)) {
+			fs.mkdirSync(reportsDir);
+		}
+
+		const filePath = path.join(reportsDir, `${username}.json`);
+
+		let reports = [];
+		if (fs.existsSync(filePath)) {
+			const fileData = fs.readFileSync(filePath, 'utf8');
+			try {
+				reports = JSON.parse(fileData);
+			} catch (e) {
+				reports = [];
+			}
+		}
+
+		reports.push({
+			...report,
+			timestamp: new Date().toLocaleString('ru-RU')
+		});
+
+		fs.writeFileSync(filePath, JSON.stringify(reports, null, 2));
+		res.json({ success: true, message: 'Report saved' });
+	} catch (error) {
+		console.error('Error saving report:', error);
+		res.status(500).json({ error: 'Failed to save report', details: error.message });
+	}
+});
+
 // Health check endpoint (should be BEFORE the fallback route)
 app.get('/api/health', (req, res) => {
 	res.json({

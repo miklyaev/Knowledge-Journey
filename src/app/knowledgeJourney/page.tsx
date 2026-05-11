@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import { TopBar, GnomeWindow } from "@/components/GnomeUI";
 import AIAssistant from "@/components/AIAssistant";
-import TimerSingleChoice from "@/components/TimerSingleChoice";
-import TimerMultipleChoice from "@/components/TimerMultipleChoice";
+import FinalReport from "@/components/FinalReport";
+import TimerSingleChoice from "@/components/TimerSingleChoice"; import TimerMultipleChoice from "@/components/TimerMultipleChoice";
 import TimerFillTheBlank from "@/components/TimerFillTheBlank";
 import TimerMatchPairs from "@/components/TimerMatchPairs";
 import TimerTrueFalse from "@/components/TimerTrueFalse";
@@ -21,6 +21,8 @@ const KnowledgeJourney = () => {
 	const [totalScore, setTotalScore] = useState(0);
 	const [isStepFinished, setIsStepFinished] = useState(false);
 	const [lastPoints, setLastPoints] = useState(0);
+	const [showReport, setShowReport] = useState(false);
+	const [stepResults, setStepResults] = useState<any[]>([]);
 
 	const handleJourneyGenerated = (data: any[]) => {
 		setJourney(data);
@@ -28,6 +30,7 @@ const KnowledgeJourney = () => {
 		setIsFinished(false);
 		setTotalScore(0);
 		setIsStepFinished(false);
+		setStepResults([]);
 	};
 
 	const handleStepComplete = (isCorrect: boolean, points: number = 0) => {
@@ -37,8 +40,14 @@ const KnowledgeJourney = () => {
 		setLastPoints(earnedPoints);
 		setTotalScore(prev => prev + earnedPoints);
 		setIsStepFinished(true);
-	};
 
+		// Сохраняем результат шага для отчета
+		setStepResults(prev => [...prev, {
+			question: journey[currentStep].question || journey[currentStep].task || "Задание",
+			isCorrect: isCorrect || (journey[currentStep].type === 'free-response' && points > 0),
+			timeSpent: 30 - (window as any).lastTimerValue || 0 // Предполагаем, что таймер где-то сохраняет значение
+		}]);
+	};
 	const handleNextStep = () => {
 		if (!journey) return;
 
@@ -65,9 +74,13 @@ const KnowledgeJourney = () => {
 	};
 
 	const handleFinish = () => {
-		window.location.href = '/';
+		setShowReport(true);
 	};
 
+	const handleCloseReport = () => {
+		setShowReport(false);
+		window.location.href = '/';
+	};
 	const renderStep = () => {
 		if (!journey) return null;
 		const step = journey[currentStep];
@@ -219,8 +232,21 @@ const KnowledgeJourney = () => {
 					</div>
 				</GnomeWindow>
 			</div>
-		</main>
-	);
+
+			{showReport && (
+				<FinalReport
+					results={stepResults}
+					onRestart={() => {
+						setShowReport(false);
+						handleContinue();
+					}}
+					onClose={handleCloseReport}
+					username="User_Account" // В реальном приложении здесь должен быть логин из сессии
+					topic={topic}
+					totalScore={totalScore}
+				/>
+			)}
+		</main>);
 };
 
 export default KnowledgeJourney;
