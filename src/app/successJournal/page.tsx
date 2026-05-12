@@ -61,9 +61,9 @@ const SuccessJournalPage = () => {
       <TopBar />
 
       <div className="flex-grow flex flex-col items-center justify-start p-4 mt-16 gap-8 w-full max-w-7xl mx-auto overflow-y-auto">
-        <GnomeWindow title="Журнал успеха">
+        <GnomeWindow title="Журнал успехов">
           <div className="p-6 w-full">
-            {!user && !authLoading ? (
+            {!user && isInitialCheckDone ? (
               <div className="flex flex-col items-center justify-center py-12 text-gray-500">
                 <AlertCircle className="w-12 h-12 mb-4 opacity-20" />
                 <p className="text-lg font-medium">Пожалуйста, авторизуйтесь для просмотра журнала</p>
@@ -151,7 +151,7 @@ const SuccessJournalPage = () => {
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
           onSuccess={handleAuthSuccess}
-          title="Вход в журнал успеха"
+          title="Вход в журнал успехов"
         />
       )}
     </main>

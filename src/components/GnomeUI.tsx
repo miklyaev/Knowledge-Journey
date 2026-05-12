@@ -86,8 +86,8 @@ const UsersList = () => {
 						<div className={cn("w-1.5 h-1.5 rounded-full", u === user ? "bg-ubuntu-orange" : "bg-gray-400")} />
 						{u}
 					</div>
-					<Link 
-						href="/successJournal" 
+					<Link
+						href="/successJournal"
 						className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] uppercase font-bold hover:underline"
 						title="Открыть журнал успеха"
 					>
@@ -100,9 +100,9 @@ const UsersList = () => {
 	);
 };
 
-export const AuthModal: React.FC<{ 
-	isOpen: boolean; 
-	onClose: () => void; 
+export const AuthModal: React.FC<{
+	isOpen: boolean;
+	onClose: () => void;
 	onSuccess: () => void;
 	title?: string;
 }> = ({ isOpen, onClose, onSuccess, title = "Вход в систему обучения" }) => {
@@ -195,19 +195,19 @@ export const TopBar: React.FC = () => {
 					<Link href="/" className="hover:bg-white/10 px-3 py-1 rounded cursor-default transition-colors flex items-center gap-2">
 						<span className="font-bold">Главная</span>
 					</Link>
-					
-					<button 
-						onClick={() => handleNavClick('/knowledgeJourney')} 
+
+					<button
+						onClick={() => handleNavClick('/knowledgeJourney')}
 						className="hover:bg-white/10 px-3 py-1 rounded cursor-default transition-colors flex items-center gap-2"
 					>
 						<span className="font-medium opacity-90">Маршрут обучения</span>
 					</button>
 
-					<button 
-						onClick={() => handleNavClick('/successJournal')} 
+					<button
+						onClick={() => handleNavClick('/successJournal')}
 						className="hover:bg-white/10 px-3 py-1 rounded cursor-default transition-colors flex items-center gap-2"
 					>
-						<span className="font-medium opacity-90">Журнал успеха</span>
+						<span className="font-medium opacity-90">Журнал успехов</span>
 					</button>
 				</div>
 				<div className="absolute left-1/2 -translate-x-1/2 flex items-center h-full">
@@ -231,12 +231,11 @@ export const TopBar: React.FC = () => {
 					</div>
 				</div>
 			</div>
-			<AuthModal 
-				isOpen={isAuthOpen} 
-				onClose={() => setIsAuthOpen(false)} 
+			<AuthModal
+				isOpen={isAuthOpen}
+				onClose={() => setIsAuthOpen(false)}
 				onSuccess={() => window.location.href = authTarget}
-				title={authTarget === '/successJournal' ? "Вход в журнал успеха" : "Вход в систему обучения"}
-			/>
-		</>
+				title={authTarget === '/successJournal' ? "Вход в журнал успехов" : "Вход в систему обучения"}
+			/>		</>
 	);
 };
