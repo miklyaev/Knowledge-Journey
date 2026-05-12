@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { CheckCircle2, XCircle, Clock, RotateCcw, Trophy } from 'lucide-react';
+import React from "react";
+import { CheckCircle2, XCircle, Clock, RotateCcw, Trophy } from "lucide-react";
 
 interface FinalReportProps {
   results: {
@@ -16,13 +16,21 @@ interface FinalReportProps {
   onClose: () => void;
 }
 
-const FinalReport: React.FC<FinalReportProps> = ({ results, onRestart, username, topic, totalScore, onClose }) => {
-  const correctCount = results.filter(r => r.isCorrect).length;
+const FinalReport: React.FC<FinalReportProps> = ({
+  results,
+  onRestart,
+  username,
+  topic,
+  totalScore,
+  onClose,
+}) => {
+  const correctCount = results.filter((r) => r.isCorrect).length;
   const totalCount = results.length;
 
   // Безопасный подсчет времени с защитой от некорректных данных
   const totalTimeSeconds = results.reduce((acc, r) => {
-    const time = typeof r.timeSpent === 'number' && !isNaN(r.timeSpent) ? r.timeSpent : 0;
+    const time =
+      typeof r.timeSpent === "number" && !isNaN(r.timeSpent) ? r.timeSpent : 0;
     return acc + time;
   }, 0);
 
@@ -41,14 +49,14 @@ const FinalReport: React.FC<FinalReportProps> = ({ results, onRestart, username,
         username,
         topic,
         totalScore,
-        dateTime: new Date().toLocaleString('ru-RU'),
-        details: results
+        dateTime: new Date().toLocaleString("ru-RU"),
+        details: results,
       };
 
-      const response = await fetch('http://localhost:3031/api/save-report', {
-        method: 'POST',
+      const response = await fetch("http://localhost:3031/api/save-report", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(reportData),
       });
@@ -56,11 +64,11 @@ const FinalReport: React.FC<FinalReportProps> = ({ results, onRestart, username,
       if (response.ok) {
         onClose();
       } else {
-        alert('Ошибка при сохранении отчета');
+        alert("Ошибка при сохранении отчета");
       }
     } catch (error) {
-      console.error('Error saving report:', error);
-      alert('Не удалось связаться с сервером');
+      console.error("Error saving report:", error);
+      alert("Не удалось связаться с сервером");
     } finally {
       setIsSaving(false);
     }
@@ -78,49 +86,80 @@ const FinalReport: React.FC<FinalReportProps> = ({ results, onRestart, username,
         <div className="p-6">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-              <p className="text-gray-500 text-[10px] uppercase font-bold mb-1">Аккаунт</p>
+              <p className="text-gray-500 text-[10px] uppercase font-bold mb-1">
+                Аккаунт
+              </p>
               <p className="text-sm font-bold text-gray-800">{username}</p>
             </div>
             <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-              <p className="text-gray-500 text-[10px] uppercase font-bold mb-1">Дата и время</p>
-              <p className="text-sm font-bold text-gray-800">{new Date().toLocaleString('ru-RU')}</p>
+              <p className="text-gray-500 text-[10px] uppercase font-bold mb-1">
+                Дата и время
+              </p>
+              <p className="text-sm font-bold text-gray-800">
+                {new Date().toLocaleString("ru-RU")}
+              </p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div className="bg-orange-50 p-3 rounded-xl text-center border border-orange-100">
-              <p className="text-orange-600 text-[10px] uppercase font-bold mb-1">Баллы</p>
-              <p className="text-xl font-black text-ubuntu-orange">{totalScore}</p>
+              <p className="text-orange-600 text-[10px] uppercase font-bold mb-1">
+                Баллы
+              </p>
+              <p className="text-xl font-black text-ubuntu-orange">
+                {totalScore}
+              </p>
             </div>
             <div className="bg-green-50 p-3 rounded-xl text-center border border-green-100">
-              <p className="text-green-600 text-[10px] uppercase font-bold mb-1">Верно</p>
-              <p className="text-xl font-black text-green-600">{correctCount}/{totalCount}</p>
+              <p className="text-green-600 text-[10px] uppercase font-bold mb-1">
+                Верно
+              </p>
+              <p className="text-xl font-black text-green-600">
+                {correctCount}/{totalCount}
+              </p>
             </div>
             <div className="bg-blue-50 p-3 rounded-xl text-center border border-blue-100">
-              <p className="text-blue-600 text-[10px] uppercase font-bold mb-1">Время</p>
-              <p className="text-xl font-black text-blue-600">{formatTimeDisplay(totalTimeSeconds)}</p>
+              <p className="text-blue-600 text-[10px] uppercase font-bold mb-1">
+                Время
+              </p>
+              <p className="text-xl font-black text-blue-600">
+                {formatTimeDisplay(totalTimeSeconds)}
+              </p>
             </div>
           </div>
 
           <div className="space-y-2 mb-6 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-            <h3 className="font-bold text-gray-800 text-sm mb-2">Детализация:</h3>
+            <h3 className="font-bold text-gray-800 text-sm mb-2">
+              Детализация:
+            </h3>
             {results.map((result, index) => (
-              <div key={index} className="flex items-baseline justify-between p-1 bg-gray-50 rounded-lg border border-gray-300">
-                <div className="flex items-baseline gap-3 overflow-hidden">
-                  <div className="flex items-center shrink-0 self-center">
+              <div
+                key={index}
+                className="flex items-baseline justify-between p-1 bg-gray-50 rounded-lg border border-gray-300"
+              >
+                <div className="flex items-endой gap-3 overflow-hidden">
+                  <div className="flex items-baseline shrink-0 mb-0.5">
                     {result.isCorrect ? (
                       <CheckCircle2 className="text-green-500" size={18} />
                     ) : (
                       <XCircle className="text-red-500" size={18} />
                     )}
                   </div>
-                  <p className="text-[12px] text-gray-700 truncate font-medium leading-tight">{result.question}</p>
+                  <p className="text-[12px] text-gray-700 truncate font-medium leading-tight">
+                    {result.question}
+                  </p>
                 </div>
                 <span className="text-[12px] font-bold text-gray-400 shrink-0 ml-2 leading-tight">
-                  {formatTimeDisplay(typeof result.timeSpent === 'number' && !isNaN(result.timeSpent) ? result.timeSpent : 0)}
+                  {formatTimeDisplay(
+                    typeof result.timeSpent === "number" &&
+                      !isNaN(result.timeSpent)
+                      ? result.timeSpent
+                      : 0,
+                  )}
                 </span>
               </div>
-            ))}          </div>
+            ))}{" "}
+          </div>
           <div className="flex gap-3">
             <button
               onClick={onClose}
@@ -133,7 +172,7 @@ const FinalReport: React.FC<FinalReportProps> = ({ results, onRestart, username,
               disabled={isSaving}
               className="flex-1 py-3 bg-ubuntu-orange hover:bg-orange-600 text-white rounded-xl font-bold transition-all shadow-md active:scale-[0.98] disabled:opacity-50"
             >
-              {isSaving ? 'Сохранение...' : 'Сохранить'}
+              {isSaving ? "Сохранение..." : "Сохранить"}
             </button>
           </div>
         </div>
