@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { TopBar, GnomeWindow, AuthModal } from "@/components/GnomeUI";
 import { useAuth } from "@/lib/AuthContext";
-import { ClipboardList, Loader2, AlertCircle, Calendar, BookOpen, Award, Clock } from "lucide-react";
+import { ClipboardList, Loader2, AlertCircle, Calendar, BookOpen, Award, Clock, Sparkles } from "lucide-react";
 
 interface ReportEntry {
   username: string;
@@ -71,7 +71,7 @@ const SuccessJournalPage = () => {
       <div className="flex-grow flex flex-col items-center justify-start p-4 mt-16 gap-8 w-full max-w-7xl mx-auto overflow-y-auto">
         <GnomeWindow title="Журнал успехов">
           <div className="p-6 w-full">
-            {!user && isInitialCheckDone ? (
+            {!user ? (
               <div className="flex flex-col items-center justify-center py-12 text-gray-500">
                 <AlertCircle className="w-12 h-12 mb-4 opacity-20" />
                 <p className="text-lg font-medium">Пожалуйста, авторизуйтесь для просмотра журнала</p>
@@ -152,19 +152,29 @@ const SuccessJournalPage = () => {
                 </div>
 
                 {/* Итоговая строка */}
-                <div className="flex items-center justify-end gap-12 px-6 py-4 bg-gray-50/50 rounded-xl border border-gray-100">
-                  <div className="flex items-center gap-4">
+                <div className="flex items-center justify-start gap-12 px-12 py-4 bg-gray-50/50 rounded-xl border border-gray-100 ml-[-25px]">
+                  <div className="flex items-center gap-4 min-w-[100px]">
                     <span className="text-sm font-bold text-ubuntu-orange uppercase tracking-wider">Итого</span>
                   </div>
-                  <div className="flex items-center gap-20">
+                  <div className="flex items-center gap-20 flex-grow justify-around">
                     <div className="flex flex-col items-center">
-                      <span className="text-xs text-gray-400 uppercase font-bold mb-1">общее количество баллов</span>
-                      <span className="text-xl font-black text-gray-700">{totalPoints}</span>
+                      <span className="text-[9px] text-gray-400 uppercase font-bold mb-1 tracking-tight">всего баллов</span>
+                      <span className="text-2xl font-black text-gray-700">{totalPoints}</span>
                     </div>
                     <div className="flex flex-col items-center">
-                      <span className="text-xs text-gray-400 uppercase font-bold mb-1">общее количество заданий</span>
-                      <span className="text-xl font-black text-gray-700">{totalTasks}</span>
+                      <span className="text-[9px] text-gray-400 uppercase font-bold mb-1 tracking-tight">всего заданий</span>
+                      <span className="text-2xl font-black text-gray-700">{totalTasks}</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Бонусное сообщение */}
+                <div className="mt-4 flex justify-center">
+                  <div className="px-6 py-3 bg-gradient-to-r from-ubuntu-orange/5 via-ubuntu-orange/10 to-ubuntu-orange/5 rounded-full border border-ubuntu-orange/20 shadow-sm animate-pulse">
+                    <p className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Sparkles size={16} className="text-ubuntu-orange" />
+                      При достижении <span className="font-bold text-ubuntu-orange">1 000 баллов</span> вас ждёт бонус!
+                    </p>
                   </div>
                 </div>
               </div>
@@ -172,6 +182,7 @@ const SuccessJournalPage = () => {
           </div>
         </GnomeWindow>
       </div>
+
       {showAuthModal && (
         <AuthModal
           isOpen={showAuthModal}
