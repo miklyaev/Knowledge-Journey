@@ -34,7 +34,7 @@ const KnowledgeJourney = () => {
 	};
 
 	const handleStepComplete = (isCorrect: boolean, points: number = 0, timeSpent: number = 0) => {
-		if (!journey) return;
+		if (!journey || isStepFinished) return;
 
 		const earnedPoints = isCorrect ? points : (journey[currentStep].type === 'free-response' ? points : 0);
 		setLastPoints(earnedPoints);
@@ -47,7 +47,9 @@ const KnowledgeJourney = () => {
 			isCorrect: isCorrect || (journey[currentStep].type === 'free-response' && points > 0),
 			timeSpent: timeSpent
 		}]);
-	}; const handleNextStep = () => {
+	};
+
+	const handleNextStep = () => {
 		if (!journey) return;
 
 		if (currentStep < journey.length - 1) {
