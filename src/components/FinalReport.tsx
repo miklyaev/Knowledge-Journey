@@ -145,11 +145,11 @@ const FinalReport: React.FC<FinalReportProps> = ({
                       <XCircle className="text-red-500" size={18} />
                     )}
                   </div>
-                  <p className="text-[12px] text-gray-700 truncate font-medium leading-tight">
+                  <p className="text-[13px] text-gray-700 truncate font-medium leading-tight">
                     {result.question}
                   </p>
                 </div>
-                <span className="text-[12px] font-bold text-gray-400 shrink-0 ml-2 leading-tight">
+                <span className="text-[13px] font-bold text-gray-400 shrink-0 ml-2 leading-tight">
                   {formatTimeDisplay(
                     typeof result.timeSpent === "number" &&
                       !isNaN(result.timeSpent)

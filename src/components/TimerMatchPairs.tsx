@@ -150,19 +150,23 @@ const TimerMatchPairs: React.FC<TimerMatchPairsProps> = ({
                   const matchedRightId = matches[item.id];
                   const isCorrect = isSubmitted && matchedRightId && correctMapping[item.id] === matchedRightId;
                   const isWrong = isSubmitted && matchedRightId && correctMapping[item.id] !== matchedRightId;
-                  let style = 'border-gray-200 bg-white text-gray-700 hover:border-blue-300';
-                  if (selectedLeft === item.id) style = 'border-blue-500 bg-blue-100 text-blue-700';
-                  else if (answered) {
-                    if (isCorrect) style = 'border-green-500 bg-green-50 text-green-800';
-                    else if (isWrong) style = 'border-red-500 bg-red-50 text-red-800';
-                  } else if (matchedRightId) style = 'border-green-200 bg-green-50 text-green-700';
+                  let style = 'border-gray-200 bg-white text-gray-700 hover:border-blue-400 hover:shadow-sm';
+
+                  if (selectedLeft === item.id) {
+                    style = 'border-blue-600 bg-blue-100 text-blue-700 border-2 shadow-md';
+                  } else if (answered) {
+                    if (isCorrect) style = 'border-green-600 bg-green-50 text-green-800 border-2';
+                    else if (isWrong) style = 'border-red-600 bg-red-50 text-red-800 border-2';
+                  } else if (matchedRightId) {
+                    style = 'border-blue-500 bg-blue-50 text-blue-700 border-2';
+                  }
+
                   return (
-                    <button key={item.id} onClick={() => handleLeftClick(item.id)} disabled={answered} className={cn("w-full text-left px-4 py-2 rounded-xl border text-sm transition-all", style)}>
-                      <div className="flex items-center justify-between">
-                        <span>{item.text}</span>
-                        {isCorrect && <CheckCircle size={16} className="text-green-500" />}
-                        {isWrong && <XCircle size={16} className="text-red-500" />}
-                      </div>
+                    <button key={item.id} onClick={() => handleLeftClick(item.id)} disabled={answered} className={cn("w-full text-left px-4 py-2.5 rounded-xl border transition-all duration-200", style)}>                      <div className="flex items-center justify-between">
+                      <span>{item.text}</span>
+                      {isCorrect && <CheckCircle size={16} className="text-green-500" />}
+                      {isWrong && <XCircle size={16} className="text-red-500" />}
+                    </div>
                     </button>
                   );
                 })}
@@ -172,14 +176,21 @@ const TimerMatchPairs: React.FC<TimerMatchPairsProps> = ({
                   const matchedLeftId = Object.keys(matches).find(key => matches[key] === item.id);
                   const isCorrect = isSubmitted && matchedLeftId && correctMapping[matchedLeftId] === item.id;
                   const isWrong = isSubmitted && matchedLeftId && correctMapping[matchedLeftId] !== item.id;
-                  let style = matchedLeftId ? (isCorrect ? 'border-green-500 bg-green-50 text-green-800' : isWrong ? 'border-red-500 bg-red-50 text-red-800' : 'border-blue-500 bg-blue-50 text-blue-700') : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300';
+
+                  let style = 'border-gray-200 bg-white text-gray-700 hover:border-blue-400 hover:shadow-sm';
+
+                  if (matchedLeftId) {
+                    if (isCorrect) style = 'border-green-600 bg-green-50 text-green-800 border-2';
+                    else if (isWrong) style = 'border-red-600 bg-red-50 text-red-800 border-2';
+                    else style = 'border-blue-600 bg-blue-50 text-blue-700 border-2 shadow-sm';
+                  }
+
                   return (
-                    <button key={item.id} onClick={() => handleRightClick(item.id)} disabled={answered} className={cn("w-full text-left px-4 py-2 rounded-xl border text-sm transition-all", style)}>
+                    <button key={item.id} onClick={() => handleRightClick(item.id)} disabled={answered} className={cn("w-full text-left px-4 py-2.5 rounded-xl border transition-all duration-200", style)}>
                       <span>{item.text}</span>
                     </button>
                   );
-                })}
-              </div>
+                })}              </div>
             </div>
             {!answered ? (
               <button onClick={handleSubmit} disabled={Object.keys(matches).length !== leftItems.length} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-md">Проверить пары</button>
