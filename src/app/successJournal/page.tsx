@@ -10,7 +10,12 @@ interface ReportEntry {
   topic: string;
   totalScore: number;
   timestamp: string;
-  results: Array<{
+  results?: Array<{
+    question: string;
+    isCorrect: boolean;
+    timeSpent: number;
+  }>;
+  details?: Array<{
     question: string;
     isCorrect: boolean;
     timeSpent: number;
@@ -33,12 +38,15 @@ const SuccessJournalPage = () => {
       const data = await response.json();
       setReports(data.reverse());
     } catch (err) {
-      setError("Ошибка при загрузке журнала успеха");
+      setError("Ошибка при загрузке журнала успехов");
       console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const totalPoints = reports.reduce((sum, r) => sum + (r.totalScore || 0), 0);
+  const totalTasks = reports.reduce((sum, r) => sum + (r.details?.length || r.results?.length || 0), 0);
 
   useEffect(() => {
     if (user) {
@@ -86,66 +94,84 @@ const SuccessJournalPage = () => {
                 <p className="text-sm">Пройдите свой первый маршрут обучения, чтобы увидеть его здесь!</p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-                <table className="w-full text-left border-collapse bg-white">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="px-6 py-4 text-sm font-bold text-gray-600 uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          <Calendar size={16} className="text-ubuntu-orange" />
-                          Дата
-                        </div>
-                      </th>
-                      <th className="px-6 py-4 text-sm font-bold text-gray-600 uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          <BookOpen size={16} className="text-ubuntu-orange" />
-                          Тема
-                        </div>
-                      </th>
-                      <th className="px-6 py-4 text-sm font-bold text-gray-600 uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          <Award size={16} className="text-ubuntu-orange" />
-                          Баллы
-                        </div>
-                      </th>
-                      <th className="px-6 py-4 text-sm font-bold text-gray-600 uppercase tracking-wider">
-                        <div className="flex items-center gap-2">
-                          <Clock size={16} className="text-ubuntu-orange" />
-                          Заданий
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {reports.map((report, idx) => (
-                      <tr
-                        key={idx}
-                        className="hover:bg-orange-50/30 transition-colors group"
-                      >
-                        <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                          {report.timestamp}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-800">
-                          {report.topic}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-ubuntu-orange/10 text-ubuntu-orange border border-ubuntu-orange/20">
-                            {report.totalScore}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {report.results?.length || 0}
-                        </td>
+              <div className="flex flex-col gap-4">
+                <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+                  <table className="w-full text-left border-collapse bg-white">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="px-6 py-4 text-sm font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center gap-2">
+                            <Calendar size={16} className="text-ubuntu-orange" />
+                            Дата
+                          </div>
+                        </th>
+                        <th className="px-6 py-4 text-sm font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center gap-2">
+                            <BookOpen size={16} className="text-ubuntu-orange" />
+                            Тема
+                          </div>
+                        </th>
+                        <th className="px-6 py-4 text-sm font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center gap-2">
+                            <Award size={16} className="text-ubuntu-orange" />
+                            Баллы
+                          </div>
+                        </th>
+                        <th className="px-6 py-4 text-sm font-bold text-gray-600 uppercase tracking-wider">
+                          <div className="flex items-center gap-2">
+                            <Clock size={16} className="text-ubuntu-orange" />
+                            Заданий
+                          </div>
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {reports.map((report, idx) => (
+                        <tr
+                          key={idx}
+                          className="hover:bg-orange-50/30 transition-colors group"
+                        >
+                          <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                            {report.timestamp}
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium text-gray-800">
+                            {report.topic}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-ubuntu-orange/10 text-ubuntu-orange border border-ubuntu-orange/20">
+                              {report.totalScore}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500">
+                            {report.details?.length || report.results?.length || 0}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Итоговая строка */}
+                <div className="flex items-center justify-end gap-12 px-6 py-4 bg-gray-50/50 rounded-xl border border-gray-100">
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm font-bold text-ubuntu-orange uppercase tracking-wider">Итого</span>
+                  </div>
+                  <div className="flex items-center gap-20">
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs text-gray-400 uppercase font-bold mb-1">общее количество баллов</span>
+                      <span className="text-xl font-black text-gray-700">{totalPoints}</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs text-gray-400 uppercase font-bold mb-1">общее количество заданий</span>
+                      <span className="text-xl font-black text-gray-700">{totalTasks}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
         </GnomeWindow>
       </div>
-
       {showAuthModal && (
         <AuthModal
           isOpen={showAuthModal}
