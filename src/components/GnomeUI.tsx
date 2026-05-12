@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
-import { User, Users, LogOut, ShieldCheck } from 'lucide-react';
+import { User, Users, LogOut, ShieldCheck, FileBarChart2 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -79,18 +79,33 @@ const UsersList = () => {
 		<div className="space-y-1">
 			{allUsers.map(u => (
 				<div key={u} className={cn(
-					"text-sm px-2 py-1 rounded flex items-center gap-2",
+					"text-sm px-2 py-1 rounded flex items-center justify-between group",
 					u === user ? "bg-ubuntu-orange/10 text-ubuntu-orange font-medium" : "text-gray-600"
 				)}>
-					<div className={cn("w-1.5 h-1.5 rounded-full", u === user ? "bg-ubuntu-orange" : "bg-gray-400")} />
-					{u}
+					<div className="flex items-center gap-2">
+						<div className={cn("w-1.5 h-1.5 rounded-full", u === user ? "bg-ubuntu-orange" : "bg-gray-400")} />
+						{u}
+					</div>
+					<Link 
+						href="/successJournal" 
+						className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] uppercase font-bold hover:underline"
+						title="Открыть журнал успеха"
+					>
+						<FileBarChart2 size={12} />
+						Отчёт
+					</Link>
 				</div>
 			))}
 		</div>
 	);
 };
 
-export const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void; onSuccess: () => void }> = ({ isOpen, onClose, onSuccess }) => {
+export const AuthModal: React.FC<{ 
+	isOpen: boolean; 
+	onClose: () => void; 
+	onSuccess: () => void;
+	title?: string;
+}> = ({ isOpen, onClose, onSuccess, title = "Вход в систему обучения" }) => {
 	const [nickname, setNickname] = useState('');
 	const [password, setPassword] = useState('');
 	const [error, setError] = useState('');
@@ -115,7 +130,7 @@ export const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void; onSucce
 			<div className="gnome-window w-full max-w-md animate-in zoom-in duration-200">
 				<div className="gnome-header">
 					<div className="w-12" />
-					<span className="font-bold text-gray-600">Вход в систему обучения</span>
+					<span className="font-bold text-gray-600">{title}</span>
 					<button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
 				</div>
 				<div className="p-8 bg-white">
@@ -162,6 +177,16 @@ export const AuthModal: React.FC<{ isOpen: boolean; onClose: () => void; onSucce
 export const TopBar: React.FC = () => {
 	const { user } = useAuth();
 	const [isAuthOpen, setIsAuthOpen] = useState(false);
+	const [authTarget, setAuthTarget] = useState<'/knowledgeJourney' | '/successJournal'>('/knowledgeJourney');
+
+	const handleNavClick = (target: '/knowledgeJourney' | '/successJournal') => {
+		if (user) {
+			window.location.href = target;
+		} else {
+			setAuthTarget(target);
+			setIsAuthOpen(true);
+		}
+	};
 
 	return (
 		<>
@@ -170,15 +195,20 @@ export const TopBar: React.FC = () => {
 					<Link href="/" className="hover:bg-white/10 px-3 py-1 rounded cursor-default transition-colors flex items-center gap-2">
 						<span className="font-bold">Главная</span>
 					</Link>
-					{user ? (
-						<Link href="/knowledgeJourney" className="hover:bg-white/10 px-3 py-1 rounded cursor-default transition-colors flex items-center gap-2">
-							<span className="font-medium opacity-90">Маршрут обучения</span>
-						</Link>
-					) : (
-						<button onClick={() => setIsAuthOpen(true)} className="hover:bg-white/10 px-3 py-1 rounded cursor-default transition-colors flex items-center gap-2">
-							<span className="font-medium opacity-90">Маршрут обучения</span>
-						</button>
-					)}
+					
+					<button 
+						onClick={() => handleNavClick('/knowledgeJourney')} 
+						className="hover:bg-white/10 px-3 py-1 rounded cursor-default transition-colors flex items-center gap-2"
+					>
+						<span className="font-medium opacity-90">Маршрут обучения</span>
+					</button>
+
+					<button 
+						onClick={() => handleNavClick('/successJournal')} 
+						className="hover:bg-white/10 px-3 py-1 rounded cursor-default transition-colors flex items-center gap-2"
+					>
+						<span className="font-medium opacity-90">Журнал успеха</span>
+					</button>
 				</div>
 				<div className="absolute left-1/2 -translate-x-1/2 flex items-center h-full">
 					<span className="text-xs font-bold">8 мая 15:40</span>
@@ -201,7 +231,12 @@ export const TopBar: React.FC = () => {
 					</div>
 				</div>
 			</div>
-			<AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} onSuccess={() => window.location.href = '/knowledgeJourney'} />
+			<AuthModal 
+				isOpen={isAuthOpen} 
+				onClose={() => setIsAuthOpen(false)} 
+				onSuccess={() => window.location.href = authTarget}
+				title={authTarget === '/successJournal' ? "Вход в журнал успеха" : "Вход в систему обучения"}
+			/>
 		</>
 	);
 };

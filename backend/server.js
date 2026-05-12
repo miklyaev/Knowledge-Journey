@@ -292,6 +292,26 @@ app.post('/api/ai/evaluate', async (req, res) => {
 	}
 });
 
+// Эндпоинт для получения всех отчетов пользователя
+app.get('/api/reports/:username', (req, res) => {
+	try {
+		const { username } = req.params;
+		const reportsDir = path.join(__dirname, 'reports');
+		const filePath = path.join(reportsDir, `${username}.json`);
+
+		if (!fs.existsSync(filePath)) {
+			return res.json([]);
+		}
+
+		const fileData = fs.readFileSync(filePath, 'utf8');
+		const reports = JSON.parse(fileData);
+		res.json(Array.isArray(reports) ? reports : [reports]);
+	} catch (error) {
+		console.error('Error fetching reports:', error);
+		res.status(500).json({ error: 'Failed to fetch reports' });
+	}
+});
+
 // Эндпоинт для сохранения финального отчета в JSON
 app.post('/api/save-report', (req, res) => {
 	try {
