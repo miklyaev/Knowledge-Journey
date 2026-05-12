@@ -159,25 +159,40 @@ const SuccessJournalPage = () => {
                   <div className="flex items-center gap-20 flex-grow justify-around">
                     <div className="flex flex-col items-center">
                       <span className="text-[9px] text-gray-400 uppercase font-bold mb-1 tracking-tight">всего баллов</span>
-                      <span className="text-2xl font-black text-gray-700">{totalPoints}</span>
+                      <span className="text-base font-black text-gray-700">{totalPoints}</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <span className="text-[9px] text-gray-400 uppercase font-bold mb-1 tracking-tight">всего заданий</span>
-                      <span className="text-2xl font-black text-gray-700">{totalTasks}</span>
+                      <span className="text-base font-black text-gray-700">{totalTasks}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Бонусное сообщение */}
-                <div className="mt-4 flex justify-center">
-                  <div className="px-6 py-3 bg-gradient-to-r from-ubuntu-orange/5 via-ubuntu-orange/10 to-ubuntu-orange/5 rounded-full border border-ubuntu-orange/20 shadow-sm animate-pulse">
-                    <p className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Sparkles size={16} className="text-ubuntu-orange" />
-                      При достижении <span className="font-bold text-ubuntu-orange">1 000 баллов</span> вас ждёт бонус!
-                    </p>
+                <div className="mt-8 flex justify-center">
+                  <div className="relative group cursor-default">
+                    {/* Сияющий фон с анимацией вращения и пульсации */}
+                    <div className="absolute -inset-1 bg-gradient-to-r from-ubuntu-orange via-yellow-400 to-ubuntu-orange rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+
+                    <div className="relative px-8 py-4 bg-white rounded-full border border-ubuntu-orange/20 shadow-xl flex items-center gap-3 overflow-hidden">
+                      {/* Анимированные искры на фоне */}
+                      <div className="absolute inset-0 opacity-10 pointer-events-none">
+                        <div className="absolute top-0 left-1/4 w-1 h-1 bg-ubuntu-orange rounded-full animate-ping" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="absolute bottom-2 right-1/3 w-1 h-1 bg-ubuntu-orange rounded-full animate-ping" style={{ animationDelay: '0.7s' }}></div>
+                        <div className="absolute top-1/2 right-1/4 w-1 h-1 bg-ubuntu-orange rounded-full animate-ping" style={{ animationDelay: '1.2s' }}></div>
+                      </div>
+
+                      <div className="relative flex items-center gap-3">
+                        <div className="p-2 bg-ubuntu-orange/10 rounded-full animate-bounce">
+                          <Sparkles size={20} className="text-ubuntu-orange" />
+                        </div>
+                        <p className="text-base font-medium text-gray-700 tracking-tight">
+                          При достижении <span className="font-black text-ubuntu-orange text-lg drop-shadow-sm">1 000 баллов</span> вас ждёт бонус!
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </div>              </div>
             )}
           </div>
         </GnomeWindow>

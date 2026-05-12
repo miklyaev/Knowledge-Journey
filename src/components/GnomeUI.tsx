@@ -88,13 +88,12 @@ const UsersList = () => {
 					</div>
 					<Link
 						href="/successJournal"
-						className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] uppercase font-bold hover:underline"
-						title="Открыть журнал успеха"
+						className="flex items-center gap-1 text-[10px] uppercase font-bold hover:underline"
+						title="Открыть журнал успехов"
 					>
 						<FileBarChart2 size={12} />
 						Отчёт
-					</Link>
-				</div>
+					</Link>				</div>
 			))}
 		</div>
 	);
