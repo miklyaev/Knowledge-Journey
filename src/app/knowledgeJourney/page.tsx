@@ -33,7 +33,7 @@ const KnowledgeJourney = () => {
 		setStepResults([]);
 	};
 
-	const handleStepComplete = (isCorrect: boolean, points: number = 0) => {
+	const handleStepComplete = (isCorrect: boolean, points: number = 0, timeSpent: number = 0) => {
 		if (!journey) return;
 
 		const earnedPoints = isCorrect ? points : (journey[currentStep].type === 'free-response' ? points : 0);
@@ -45,10 +45,9 @@ const KnowledgeJourney = () => {
 		setStepResults(prev => [...prev, {
 			question: journey[currentStep].question || journey[currentStep].task || "Задание",
 			isCorrect: isCorrect || (journey[currentStep].type === 'free-response' && points > 0),
-			timeSpent: 30 - (window as any).lastTimerValue || 0 // Предполагаем, что таймер где-то сохраняет значение
+			timeSpent: timeSpent
 		}]);
-	};
-	const handleNextStep = () => {
+	}; const handleNextStep = () => {
 		if (!journey) return;
 
 		if (currentStep < journey.length - 1) {
@@ -100,13 +99,14 @@ const KnowledgeJourney = () => {
 		};
 
 		const weight = step.weight || getWeight(step.type);
+		const timerSeconds = step.timerSeconds || 30;
 
 		const commonProps = {
-			onComplete: (isCorrect: boolean) => handleStepComplete(isCorrect, weight),
-			timerSeconds: step.timerSeconds || 30,
+			onComplete: (isCorrect: boolean, points: number = weight, timeSpent: number = 0) =>
+				handleStepComplete(isCorrect, points, timeSpent),
+			timerSeconds: timerSeconds,
 			weight: weight
 		};
-
 		switch (step.type) {
 			case "single-choice":
 				return <TimerSingleChoice {...step} {...commonProps} />;
