@@ -314,19 +314,21 @@ app.post('/api/save-report', (req, res) => {
 		if (fs.existsSync(filePath)) {
 			const fileData = fs.readFileSync(filePath, 'utf8');
 			try {
-				reports = JSON.parse(fileData);
+				const parsedData = JSON.parse(fileData);
+				reports = Array.isArray(parsedData) ? parsedData : [parsedData];
 			} catch (e) {
 				reports = [];
 			}
 		}
 
-		reports.push({
+		const newEntry = {
 			...report,
 			timestamp: new Date().toLocaleString('ru-RU')
-		});
+		};
 
-		fs.writeFileSync(filePath, JSON.stringify(reports, null, 2));
-		res.json({ success: true, message: 'Report saved' });
+		reports.push(newEntry);
+
+		fs.writeFileSync(filePath, JSON.stringify(reports, null, 2)); res.json({ success: true, message: 'Report saved' });
 	} catch (error) {
 		console.error('Error saving report:', error);
 		res.status(500).json({ error: 'Failed to save report', details: error.message });
