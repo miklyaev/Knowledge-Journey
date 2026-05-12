@@ -52,12 +52,11 @@ const TimerFreeResponse: React.FC<TimerFreeResponseProps> = ({
 		if (timerRef.current) clearInterval(timerRef.current);
 
 		try {
-			const res = await fetch('/api/ai/evaluate', {
+			const res = await fetch('http://localhost:3031/api/ai/evaluate', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ question, answer: userInput }),
 			});
-
 			const data = await res.json();
 			setResult(data);
 

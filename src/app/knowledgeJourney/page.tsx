@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import { TopBar, GnomeWindow } from "@/components/GnomeUI";
-import AIAssistant from "@/components/AIAssistant";
-import FinalReport from "@/components/FinalReport";
+import { useAuth } from "@/lib/AuthContext";
+import AIAssistant from "@/components/AIAssistant"; import FinalReport from "@/components/FinalReport";
 import TimerSingleChoice from "@/components/TimerSingleChoice"; import TimerMultipleChoice from "@/components/TimerMultipleChoice";
 import TimerFillTheBlank from "@/components/TimerFillTheBlank";
 import TimerMatchPairs from "@/components/TimerMatchPairs";
@@ -13,8 +13,8 @@ import TimerFreeResponse from "@/components/TimerFreeResponse";
 import { Map, Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
 
 const KnowledgeJourney = () => {
-	const [journey, setJourney] = useState<any[] | null>(null);
-	const [currentStep, setCurrentStep] = useState(0);
+	const { user } = useAuth();
+	const [journey, setJourney] = useState<any[] | null>(null); const [currentStep, setCurrentStep] = useState(0);
 	const [isFinished, setIsFinished] = useState(false);
 	const [resetTrigger, setResetTrigger] = useState(0);
 	const [topic, setTopic] = useState('');
@@ -241,11 +241,10 @@ const KnowledgeJourney = () => {
 						handleContinue();
 					}}
 					onClose={handleCloseReport}
-					username="User_Account" // В реальном приложении здесь должен быть логин из сессии
+					username={user || "Гость"}
 					topic={topic}
 					totalScore={totalScore}
-				/>
-			)}
+				/>)}
 		</main>);
 };
 
