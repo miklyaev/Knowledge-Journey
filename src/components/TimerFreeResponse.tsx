@@ -10,7 +10,7 @@ function cn(...inputs: ClassValue[]) {
 interface TimerFreeResponseProps {
 	question: string;
 	timerSeconds?: number;
-	onComplete?: (isCorrect: boolean, points?: number) => void;
+	onComplete?: (isCorrect: boolean, points?: number, timeSpent?: number) => void;
 	className?: string;
 }
 
@@ -26,30 +26,38 @@ const TimerFreeResponse: React.FC<TimerFreeResponseProps> = ({
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [result, setResult] = useState<{ score: number; feedback: string } | null>(null);
 	const [isTimeUp, setIsTimeUp] = useState(false);
+	const [startTime, setStartTime] = useState<number | null>(null);
 	const timerRef = useRef<NodeJS.Timeout | null>(null);
 
 	const answered = result !== null || isTimeUp;
 
 	useEffect(() => {
 		if (isStarted && timeLeft > 0 && !answered && !isSubmitting) {
+			if (!startTime) setStartTime(Date.now());
 			timerRef.current = setInterval(() => {
 				setTimeLeft((prev) => prev - 1);
 			}, 1000);
 		} else if (timeLeft === 0 && !answered && isStarted) {
 			setIsTimeUp(true);
-			if (onComplete) onComplete(false, 2);
+			const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : timerSeconds;
+			if (onComplete) onComplete(false, 2, timeSpent);
 			if (timerRef.current) clearInterval(timerRef.current);
 		}
 		return () => { if (timerRef.current) clearInterval(timerRef.current); };
-	}, [isStarted, timeLeft, answered, isSubmitting, onComplete]);
+	}, [isStarted, timeLeft, answered, isSubmitting, onComplete, startTime, timerSeconds]);
 
-	const handleStart = () => setIsStarted(true);
+	const handleStart = () => {
+		setIsStarted(true);
+		setStartTime(Date.now());
+	};
 
 	const handleSubmit = async () => {
 		if (answered || isSubmitting || !userInput.trim()) return;
 
 		setIsSubmitting(true);
 		if (timerRef.current) clearInterval(timerRef.current);
+
+		const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
 
 		try {
 			const res = await fetch('http://localhost:3031/api/ai/evaluate', {
@@ -61,17 +69,16 @@ const TimerFreeResponse: React.FC<TimerFreeResponseProps> = ({
 			setResult(data);
 
 			if (onComplete) {
-				onComplete(data.score > 5, data.score);
+				onComplete(data.score > 5, data.score, timeSpent);
 			}
 		} catch (error) {
 			console.error('Evaluation error:', error);
 			setResult({ score: 2, feedback: "Не удалось получить оценку от ИИ. Начислено 2 балла." });
-			if (onComplete) onComplete(false, 2);
+			if (onComplete) onComplete(false, 2, timeSpent);
 		} finally {
 			setIsSubmitting(false);
 		}
 	};
-
 	const formatTime = (seconds: number) => {
 		const mins = Math.floor(seconds / 60);
 		const secs = seconds % 60;

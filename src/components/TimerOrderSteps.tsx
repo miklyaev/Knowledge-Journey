@@ -13,7 +13,7 @@ interface TimerOrderStepsProps {
   correctOrder: string[];
   timerSeconds?: number;
   weight?: number;
-  onComplete?: (isCorrect: boolean, points?: number) => void;
+  onComplete?: (isCorrect: boolean, points?: number, timeSpent?: number) => void;
   className?: string;
 }
 
@@ -31,6 +31,7 @@ const TimerOrderSteps: React.FC<TimerOrderStepsProps> = ({
   const [currentOrder, setCurrentOrder] = useState<string[]>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isTimeUp, setIsTimeUp] = useState(false);
+  const [startTime, setStartTime] = useState<number | null>(null);
   const timerRef = useRef<any>(null);
 
   const answered = isSubmitted || isTimeUp;
@@ -42,18 +43,23 @@ const TimerOrderSteps: React.FC<TimerOrderStepsProps> = ({
 
   useEffect(() => {
     if (isStarted && timeLeft > 0 && !isSubmitted) {
+      if (!startTime) setStartTime(Date.now());
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
     } else if (timeLeft === 0 && !isSubmitted && isStarted) {
       setIsTimeUp(true);
-      if (onComplete) onComplete(false, 0);
+      const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : timerSeconds;
+      if (onComplete) onComplete(false, 0, timeSpent);
       if (timerRef.current) clearInterval(timerRef.current);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isStarted, timeLeft, isSubmitted, onComplete]);
+  }, [isStarted, timeLeft, isSubmitted, onComplete, startTime, timerSeconds]);
 
-  const handleStart = () => setIsStarted(true);
+  const handleStart = () => {
+    setIsStarted(true);
+    setStartTime(Date.now());
+  };
 
   const handleMoveUp = (index: number) => {
     if (answered || index === 0) return;
@@ -72,9 +78,11 @@ const TimerOrderSteps: React.FC<TimerOrderStepsProps> = ({
   const handleSubmit = () => {
     setIsSubmitted(true);
     if (timerRef.current) clearInterval(timerRef.current);
-    if (onComplete) onComplete(isCorrect, isCorrect ? weight : 0);
-  };
 
+    const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+
+    if (onComplete) onComplete(isCorrect, isCorrect ? weight : 0, timeSpent);
+  };
   const handleReset = () => {
     setCurrentOrder([...steps].sort(() => Math.random() - 0.5));
     setIsSubmitted(false);

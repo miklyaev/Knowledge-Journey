@@ -19,10 +19,21 @@ interface FinalReportProps {
 const FinalReport: React.FC<FinalReportProps> = ({ results, onRestart, username, topic, totalScore, onClose }) => {
   const correctCount = results.filter(r => r.isCorrect).length;
   const totalCount = results.length;
-  const percentage = Math.round((correctCount / totalCount) * 100);
-  const totalTime = results.reduce((acc, r) => acc + r.timeSpent, 0);
-  const [isSaving, setIsSaving] = React.useState(false);
 
+  // Безопасный подсчет времени с защитой от некорректных данных
+  const totalTimeSeconds = results.reduce((acc, r) => {
+    const time = typeof r.timeSpent === 'number' && !isNaN(r.timeSpent) ? r.timeSpent : 0;
+    return acc + time;
+  }, 0);
+
+  // Форматирование времени в минуты с долями
+  const formatTimeDisplay = (seconds: number) => {
+    if (seconds < 60) return `${seconds}с`;
+    const minutes = (seconds / 60).toFixed(1);
+    return `${minutes} мин`;
+  };
+
+  const [isSaving, setIsSaving] = React.useState(false);
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -87,14 +98,14 @@ const FinalReport: React.FC<FinalReportProps> = ({ results, onRestart, username,
             </div>
             <div className="bg-blue-50 p-3 rounded-xl text-center border border-blue-100">
               <p className="text-blue-600 text-[10px] uppercase font-bold mb-1">Время</p>
-              <p className="text-xl font-black text-blue-600">{totalTime}с</p>
+              <p className="text-xl font-black text-blue-600">{formatTimeDisplay(totalTimeSeconds)}</p>
             </div>
           </div>
 
           <div className="space-y-2 mb-6 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
             <h3 className="font-bold text-gray-800 text-sm mb-2">Детализация:</h3>
             {results.map((result, index) => (
-              <div key={index} className="flex items-baseline justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+              <div key={index} className="flex items-baseline justify-between p-1 bg-gray-50 rounded-lg border border-gray-300">
                 <div className="flex items-baseline gap-3 overflow-hidden">
                   <div className="flex items-center shrink-0 self-center">
                     {result.isCorrect ? (
@@ -105,10 +116,11 @@ const FinalReport: React.FC<FinalReportProps> = ({ results, onRestart, username,
                   </div>
                   <p className="text-[12px] text-gray-700 truncate font-medium leading-tight">{result.question}</p>
                 </div>
-                <span className="text-[10px] font-bold text-gray-400 shrink-0 ml-2 leading-tight">{result.timeSpent}с</span>
+                <span className="text-[12px] font-bold text-gray-400 shrink-0 ml-2 leading-tight">
+                  {formatTimeDisplay(typeof result.timeSpent === 'number' && !isNaN(result.timeSpent) ? result.timeSpent : 0)}
+                </span>
               </div>
             ))}          </div>
-
           <div className="flex gap-3">
             <button
               onClick={onClose}

@@ -13,7 +13,7 @@ interface TimerTrueFalseProps {
 	explanation: string;
 	timerSeconds?: number;
 	weight?: number;
-	onComplete?: (isCorrect: boolean, points?: number) => void;
+	onComplete?: (isCorrect: boolean, points?: number, timeSpent?: number) => void;
 	className?: string;
 }
 
@@ -30,6 +30,7 @@ const TimerTrueFalse: React.FC<TimerTrueFalseProps> = ({
 	const [timeLeft, setTimeLeft] = useState(timerSeconds);
 	const [selected, setSelected] = useState<boolean | null>(null);
 	const [isTimeUp, setIsTimeUp] = useState(false);
+	const [startTime, setStartTime] = useState<number | null>(null);
 	const timerRef = useRef<any>(null);
 
 	const answered = selected !== null || isTimeUp;
@@ -37,29 +38,36 @@ const TimerTrueFalse: React.FC<TimerTrueFalseProps> = ({
 
 	useEffect(() => {
 		if (isStarted && timeLeft > 0 && selected === null) {
+			if (!startTime) setStartTime(Date.now());
 			timerRef.current = setInterval(() => {
 				setTimeLeft((prev) => prev - 1);
 			}, 1000);
 		} else if (timeLeft === 0 && selected === null && isStarted) {
 			setIsTimeUp(true);
-			if (onComplete) onComplete(false, 0);
+			const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : timerSeconds;
+			if (onComplete) onComplete(false, 0, timeSpent);
 			if (timerRef.current) clearInterval(timerRef.current);
 		}
 
 		return () => {
 			if (timerRef.current) clearInterval(timerRef.current);
 		};
-	}, [isStarted, timeLeft, selected, onComplete]);
+	}, [isStarted, timeLeft, selected, onComplete, startTime, timerSeconds]);
 
-	const handleStart = () => setIsStarted(true);
+	const handleStart = () => {
+		setIsStarted(true);
+		setStartTime(Date.now());
+	};
 
 	const handleSelect = (value: boolean) => {
 		if (answered) return;
 		setSelected(value);
 		if (timerRef.current) clearInterval(timerRef.current);
-		if (onComplete) onComplete(value === correctAnswer, value === correctAnswer ? weight : 0);
-	};
 
+		const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+
+		if (onComplete) onComplete(value === correctAnswer, value === correctAnswer ? weight : 0, timeSpent);
+	};
 	const handleReset = () => {
 		setSelected(null);
 		setIsTimeUp(false);

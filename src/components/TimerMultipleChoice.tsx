@@ -13,7 +13,7 @@ interface TimerMultipleChoiceProps {
 	correctAnswers: number[];
 	timerSeconds?: number;
 	weight?: number;
-	onComplete?: (isCorrect: boolean, points?: number) => void;
+	onComplete?: (isCorrect: boolean, points?: number, timeSpent?: number) => void;
 	className?: string;
 }
 
@@ -31,6 +31,7 @@ const TimerMultipleChoice: React.FC<TimerMultipleChoiceProps> = ({
 	const [selected, setSelected] = useState<number[]>([]);
 	const [isSubmitted, setIsSubmitted] = useState(false);
 	const [isTimeUp, setIsTimeUp] = useState(false);
+	const [startTime, setStartTime] = useState<number | null>(null);
 
 	const timerRef = useRef<any>(null);
 
@@ -42,22 +43,25 @@ const TimerMultipleChoice: React.FC<TimerMultipleChoiceProps> = ({
 
 	useEffect(() => {
 		if (isStarted && timeLeft > 0 && !isSubmitted) {
+			if (!startTime) setStartTime(Date.now());
 			timerRef.current = setInterval(() => {
 				setTimeLeft((prev) => prev - 1);
 			}, 1000);
 		} else if (timeLeft === 0 && !isSubmitted && isStarted) {
 			setIsTimeUp(true);
-			if (onComplete) onComplete(false, 0);
+			const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : timerSeconds;
+			if (onComplete) onComplete(false, 0, timeSpent);
 			if (timerRef.current) clearInterval(timerRef.current);
 		}
 
 		return () => {
 			if (timerRef.current) clearInterval(timerRef.current);
 		};
-	}, [isStarted, timeLeft, isSubmitted, onComplete]);
+	}, [isStarted, timeLeft, isSubmitted, onComplete, startTime, timerSeconds]);
 
 	const handleStart = () => {
 		setIsStarted(true);
+		setStartTime(Date.now());
 	};
 
 	const handleToggle = (index: number) => {
@@ -74,12 +78,14 @@ const TimerMultipleChoice: React.FC<TimerMultipleChoiceProps> = ({
 		if (selected.length > 0 && !answered) {
 			setIsSubmitted(true);
 			if (timerRef.current) clearInterval(timerRef.current);
+
+			const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+
 			if (onComplete) {
-				onComplete(isCorrect, isCorrect ? weight : 0);
+				onComplete(isCorrect, isCorrect ? weight : 0, timeSpent);
 			}
 		}
 	};
-
 	const handleReset = () => {
 		setSelected([]);
 		setIsSubmitted(false);

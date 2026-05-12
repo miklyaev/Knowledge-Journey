@@ -14,7 +14,7 @@ interface TimerSingleChoiceProps {
   timerSeconds?: number;
   weight?: number;
   onSelect?: (index: number) => void;
-  onComplete?: (isCorrect: boolean, points?: number) => void;
+  onComplete?: (isCorrect: boolean, points?: number, timeSpent?: number) => void;
   className?: string;
 }
 
@@ -32,6 +32,7 @@ const TimerSingleChoice: React.FC<TimerSingleChoiceProps> = ({
   const [timeLeft, setTimeLeft] = useState(timerSeconds);
   const [selected, setSelected] = useState<number | null>(null);
   const [isTimeUp, setIsTimeUp] = useState(false);
+  const [startTime, setStartTime] = useState<number | null>(null);
   const timerRef = useRef<any>(null);
 
   const answered = selected !== null || isTimeUp;
@@ -39,30 +40,37 @@ const TimerSingleChoice: React.FC<TimerSingleChoiceProps> = ({
 
   useEffect(() => {
     if (isStarted && timeLeft > 0 && selected === null) {
+      if (!startTime) setStartTime(Date.now());
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
     } else if (timeLeft === 0 && selected === null && isStarted) {
       setIsTimeUp(true);
-      if (onComplete) onComplete(false, 0);
+      const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : timerSeconds;
+      if (onComplete) onComplete(false, 0, timeSpent);
       if (timerRef.current) clearInterval(timerRef.current);
     }
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isStarted, timeLeft, selected, onComplete]);
+  }, [isStarted, timeLeft, selected, onComplete, startTime, timerSeconds]);
 
-  const handleStart = () => setIsStarted(true);
+  const handleStart = () => {
+    setIsStarted(true);
+    setStartTime(Date.now());
+  };
 
   const handleSelect = (index: number) => {
     if (answered) return;
     setSelected(index);
     if (timerRef.current) clearInterval(timerRef.current);
-    if (onSelect) onSelect(index);
-    if (onComplete) onComplete(index === correctAnswer, index === correctAnswer ? weight : 0);
-  };
 
+    const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+
+    if (onSelect) onSelect(index);
+    if (onComplete) onComplete(index === correctAnswer, index === correctAnswer ? weight : 0, timeSpent);
+  };
   const handleReset = () => {
     setSelected(null);
     setIsTimeUp(false);

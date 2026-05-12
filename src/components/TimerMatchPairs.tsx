@@ -19,7 +19,7 @@ interface TimerMatchPairsProps {
   correctMapping: Record<string, string>;
   timerSeconds?: number;
   weight?: number;
-  onComplete?: (isCorrect: boolean, points?: number) => void;
+  onComplete?: (isCorrect: boolean, points?: number, timeSpent?: number) => void;
   className?: string;
 }
 
@@ -40,6 +40,7 @@ const TimerMatchPairs: React.FC<TimerMatchPairsProps> = ({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [shuffledRight, setShuffledRight] = useState<Pair[]>([]);
+  const [startTime, setStartTime] = useState<number | null>(null);
   const timerRef = useRef<any>(null);
 
   const answered = isSubmitted || isTimeUp;
@@ -50,18 +51,23 @@ const TimerMatchPairs: React.FC<TimerMatchPairsProps> = ({
 
   useEffect(() => {
     if (isStarted && timeLeft > 0 && !isSubmitted) {
+      if (!startTime) setStartTime(Date.now());
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
     } else if (timeLeft === 0 && !isSubmitted && isStarted) {
       setIsTimeUp(true);
-      if (onComplete) onComplete(false, 0);
+      const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : timerSeconds;
+      if (onComplete) onComplete(false, 0, timeSpent);
       if (timerRef.current) clearInterval(timerRef.current);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isStarted, timeLeft, isSubmitted, onComplete]);
+  }, [isStarted, timeLeft, isSubmitted, onComplete, startTime, timerSeconds]);
 
-  const handleStart = () => setIsStarted(true);
+  const handleStart = () => {
+    setIsStarted(true);
+    setStartTime(Date.now());
+  };
 
   const handleLeftClick = (id: string) => {
     if (answered) return;
@@ -87,10 +93,12 @@ const TimerMatchPairs: React.FC<TimerMatchPairsProps> = ({
     if (Object.keys(matches).length === leftItems.length) {
       setIsSubmitted(true);
       if (timerRef.current) clearInterval(timerRef.current);
-      if (onComplete) onComplete(isAllCorrect, isAllCorrect ? weight : 0);
+
+      const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+
+      if (onComplete) onComplete(isAllCorrect, isAllCorrect ? weight : 0, timeSpent);
     }
   };
-
   const handleReset = () => {
     setMatches({});
     setSelectedLeft(null);
