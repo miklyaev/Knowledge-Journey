@@ -18,6 +18,28 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Функция для записи логов в файл
+const logToFile = (message) => {
+	try {
+		const logPath = path.join(__dirname, 'server.log');
+		const timestamp = new Date().toLocaleString('ru-RU');
+		fs.appendFileSync(logPath, `[${timestamp}] ${message}\n`, 'utf8');
+	} catch (err) {
+		console.error('Ошибка записи в лог-файл:', err);
+	}
+};
+
+// Middleware для логирования всех входящих HTTP-запросов
+app.use((req, res, next) => {
+	const start = Date.now();
+	res.on('finish', () => {
+		const duration = Date.now() - start;
+		const logLine = `${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`;
+		logToFile(logLine);
+	});
+	next();
+});
+
 // Функция для чтения системного промпта из файла
 const getSystemPrompt = () => {
 	try {
@@ -28,7 +50,6 @@ const getSystemPrompt = () => {
 		return "Ты преподаватель в высшем техническом заведении."; // Фолбэк
 	}
 };
-
 // Обслуживание статических файлов frontend (для продакшена)
 // Import database service
 import dbService from './dbservice.js';
@@ -42,11 +63,10 @@ let gigachatClient = null;
 function initializeGigaChat() {
 	const { GIGACHAT_CLIENT_ID, GIGACHAT_CLIENT_SECRET, GIGACHAT_API_KEY } = process.env;
 
-	if (!GIGACHAT_CLIENT_ID || !GIGACHAT_CLIENT_SECRET) {
-		console.warn('GigaChat credentials not set in .env');
+	if (!GIGACHAT_API_KEY && (!GIGACHAT_CLIENT_ID || !GIGACHAT_CLIENT_SECRET)) {
+		console.warn('GigaChat credentials (API Key or Client ID/Secret) not set in .env');
 		return null;
 	}
-
 	try {
 		// Инициализация GigaChat SDK
 		// Примечание: API SDK может отличаться в зависимости от версии библиотеки
@@ -83,6 +103,10 @@ const logRequest = async (aiProvider, prompt, referrer) => {
 
 		// Insert request data into the database
 		await dbService.insertRequest(aiProvider, referrerValue, prompt);
+
+		// Логирование в файл (без тела промпта)
+		logToFile(`AI_API_CALL: Provider=${aiProvider}, Referrer=${referrerValue}, PromptLength=${prompt?.length || 0}`);
+
 		console.log(`Запрос успешно записан в БД: ${aiProvider}, длина промпта: ${prompt?.length || 0}`);
 	} catch (error) {
 		console.error('Ошибка при записи в базу данных:', {
