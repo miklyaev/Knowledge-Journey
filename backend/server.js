@@ -34,12 +34,12 @@ app.use((req, res, next) => {
 	const start = Date.now();
 	res.on('finish', () => {
 		const duration = Date.now() - start;
-		const logLine = `${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`;
+		const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+		const logLine = `${req.method} ${fullUrl} ${res.statusCode} - ${duration}ms`;
 		logToFile(logLine);
 	});
 	next();
 });
-
 // Функция для чтения системного промпта из файла
 const getSystemPrompt = () => {
 	try {
