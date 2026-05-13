@@ -2,6 +2,7 @@
 
 import React from "react";
 import { CheckCircle2, XCircle, Clock, RotateCcw, Trophy } from "lucide-react";
+import { getPublicApiBaseUrl } from "@/lib/apiBase";
 
 interface FinalReportProps {
   results: {
@@ -53,7 +54,7 @@ const FinalReport: React.FC<FinalReportProps> = ({
         details: results,
       };
 
-      const response = await fetch("http://localhost:3031/api/save-report", {
+      const response = await fetch(`${getPublicApiBaseUrl()}/api/save-report`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

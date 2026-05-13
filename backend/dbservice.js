@@ -1,4 +1,4 @@
-// Database service module for Arduino Info Hub
+// Database service
 
 import mysql from 'mysql2/promise';
 import path from 'path';
@@ -11,11 +11,11 @@ class DatabaseService {
   constructor() {
     // Initialize MySQL connection pool
     this.pool = mysql.createPool({
-      host: process.env.DB_HOST || '192.168.0.103',
-      port: parseInt(process.env.DB_PORT || process.env.DB_POST || '3306', 10),
-      database: process.env.DB_NAME || 'arduinodb',
-      user: process.env.DB_USER || 'dbeaver',
-      password: process.env.DB_PASSWORD || 'dasha2009',
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT, 10),
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
       connectionLimit: 20, // Maximum number of connections in the pool
       waitForConnections: true,
       queueLimit: 0,

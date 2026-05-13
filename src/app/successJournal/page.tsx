@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { TopBar, GnomeWindow, AuthModal } from "@/components/GnomeUI";
 import { useAuth } from "@/lib/AuthContext";
+import { getPublicApiBaseUrl } from "@/lib/apiBase";
 import { ClipboardList, Loader2, AlertCircle, Calendar, BookOpen, Award, Clock, Sparkles } from "lucide-react";
 
 interface ReportEntry {
@@ -33,7 +34,7 @@ const SuccessJournalPage = () => {
   const fetchReports = async (username: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:3031/api/reports/${username}`);
+      const response = await fetch(`${getPublicApiBaseUrl()}/api/reports/${username}`);
       if (!response.ok) throw new Error("Не удалось загрузить данные");
       const data = await response.json();
       setReports(data.reverse());

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { HelpCircle, Timer, Play, Send, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { getPublicApiBaseUrl } from '@/lib/apiBase';
 
 function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
@@ -60,7 +61,7 @@ const TimerFreeResponse: React.FC<TimerFreeResponseProps> = ({
 		const timeSpent = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
 
 		try {
-			const res = await fetch('http://localhost:3031/api/ai/evaluate', {
+			const res = await fetch(`${getPublicApiBaseUrl()}/api/ai/evaluate`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ question, answer: userInput }),
