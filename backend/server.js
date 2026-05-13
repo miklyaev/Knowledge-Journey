@@ -40,7 +40,55 @@ app.use((req, res, next) => {
 	});
 	next();
 });
-// Функция для чтения системного промпта из файла
+
+// Эндпоинты для авторизации
+app.post('/api/auth', (req, res) => {
+	try {
+		const { nickname, password } = req.body;
+
+		if (!nickname || /^\d/.test(nickname) || /\s/.test(nickname)) {
+			return res.status(400).json({ error: 'Недопустимый никнейм' });
+		}
+
+		const usersDir = path.join(__dirname, 'users');
+		if (!fs.existsSync(usersDir)) {
+			fs.mkdirSync(usersDir);
+		}
+
+		const filePath = path.join(usersDir, `${nickname}.txt`);
+
+		if (fs.existsSync(filePath)) {
+			const savedPassword = fs.readFileSync(filePath, 'utf8').trim();
+			if (savedPassword === password) {
+				return res.json({ success: true, nickname });
+			} else {
+				return res.status(401).json({ error: 'Неверный пароль' });
+			}
+		} else {
+			fs.writeFileSync(filePath, password, 'utf8');
+			return res.json({ success: true, nickname, isNew: true });
+		}
+	} catch (error) {
+		console.error('Auth error:', error);
+		res.status(500).json({ error: 'Ошибка сервера авторизации' });
+	}
+});
+
+app.get('/api/auth', (req, res) => {
+	try {
+		const usersDir = path.join(__dirname, 'users');
+		if (!fs.existsSync(usersDir)) return res.json({ users: [] });
+
+		const files = fs.readdirSync(usersDir);
+		const users = files
+			.filter(file => file.endsWith('.txt'))
+			.map(file => file.replace('.txt', ''));
+
+		res.json({ users });
+	} catch (error) {
+		res.json({ users: [] });
+	}
+});// Функция для чтения системного промпта из файла
 const getSystemPrompt = () => {
 	try {
 		const promptPath = path.join(__dirname, 'systemPrompt.md');
