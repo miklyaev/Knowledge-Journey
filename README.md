@@ -36,17 +36,17 @@
    Перейдите в папку `backend` и создайте там файл `.env`:
    cp .env.local .env 
 
-# Установите константы вашими данными
-# для Гигачат
+### Инициализируйте константы вашими данными
+### для Гигачат
 GIGACHAT_CLIENT_ID=YOUR_GIGACHAT_CLIENT_ID
 GIGACHAT_CLIENT_SECRET=YOUR_GIGACHAT_CLIENT_SECRET
 GIGACHAT_API_KEY=YOUR_GIGACHAT_API_KEY
 
-# И\ИЛИ для Yandex
+### И\ИЛИ для Yandex
 YANDEXGPT_API_KEY=YOUR_YANDEXGPT_API_KEY
 YANDEXGPT_FOLDER_ID=YOUR_YANDEXGPT_FOLDER_ID
 
-#  для базы данных данные не нужно указывать, этот функционал пока не реализован
+###  для базы данных данные не нужно указывать, этот функционал пока не реализован
 
 
 ### Установка зависимостей
