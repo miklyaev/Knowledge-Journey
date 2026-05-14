@@ -64,9 +64,8 @@ const TimerFreeResponse: React.FC<TimerFreeResponseProps> = ({
 			const res = await fetch(`${getPublicApiBaseUrl()}/api/ai/evaluate`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ question, answer: userInput }),
-			});
-			const data = await res.json();
+				body: JSON.stringify({ question, answer: userInput, provider: 'gigachat' }),
+			}); const data = await res.json();
 			setResult(data);
 
 			if (onComplete) {

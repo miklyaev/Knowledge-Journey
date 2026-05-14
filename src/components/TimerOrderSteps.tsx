@@ -35,8 +35,7 @@ const TimerOrderSteps: React.FC<TimerOrderStepsProps> = ({
   const timerRef = useRef<any>(null);
 
   const answered = isSubmitted || isTimeUp;
-  const isCorrect = JSON.stringify(currentOrder) === JSON.stringify(correctOrder);
-
+  const isCorrect = Array.isArray(currentOrder) && Array.isArray(correctOrder) && JSON.stringify(currentOrder) === JSON.stringify(correctOrder);
   useEffect(() => {
     setCurrentOrder([...steps].sort(() => Math.random() - 0.5));
   }, [steps]);

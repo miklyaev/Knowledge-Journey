@@ -300,8 +300,7 @@ app.post('/api/yandexgpt/generate', async (req, res) => {
 // Эндпоинт для оценки свободного ответа через ИИ
 app.post('/api/ai/evaluate', async (req, res) => {
 	try {
-		const { question, answer, provider = 'yandexgpt' } = req.body;
-
+		const { question, answer, provider = 'gigachat' } = req.body;
 		if (!question || !answer) {
 			return res.status(400).json({ error: 'Question and answer are required' });
 		}

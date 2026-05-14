@@ -35,16 +35,16 @@ const TimerFillTheBlank: React.FC<TimerFillTheBlankProps> = ({
 	const answered = isSubmitted || isTimeUp;
 
 	const checkCorrectness = () => {
+		if (!correctAnswer) return false;
 		const input = userInput.trim().toLowerCase();
 		if (Array.isArray(correctAnswer)) {
-			return correctAnswer.some(ans => ans.toLowerCase() === input);
+			return correctAnswer.some(ans => ans && typeof ans === 'string' && ans.toLowerCase() === input);
 		}
-		return input === correctAnswer.toLowerCase();
+		return typeof correctAnswer === 'string' && input === correctAnswer.toLowerCase();
 	};
 
 	const isCorrect = checkCorrectness();
-	const displayAnswer = Array.isArray(correctAnswer) ? correctAnswer[0] : correctAnswer;
-
+	const displayAnswer = Array.isArray(correctAnswer) ? (correctAnswer[0] || '') : (correctAnswer || '');
 	useEffect(() => {
 		if (isStarted && timeLeft > 0 && !isSubmitted) {
 			if (!startTime) setStartTime(Date.now());

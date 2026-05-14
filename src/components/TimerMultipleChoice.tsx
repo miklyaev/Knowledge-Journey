@@ -38,9 +38,9 @@ const TimerMultipleChoice: React.FC<TimerMultipleChoiceProps> = ({
 	const answered = isSubmitted || isTimeUp;
 
 	const isCorrect =
+		Array.isArray(correctAnswers) &&
 		selected.length === correctAnswers.length &&
 		selected.every(val => correctAnswers.includes(val));
-
 	useEffect(() => {
 		if (isStarted && timeLeft > 0 && !isSubmitted) {
 			if (!startTime) setStartTime(Date.now());
