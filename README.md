@@ -80,6 +80,7 @@ cd ..
 Приложение будет доступно по адресу: [http://localhost:3030]
 
 ## Deploy
+Репозиторий  находится по ссылке https://github.com/miklyaev/Knowledge-Journey
 Приложение опубликовано в интернете по адресу http://ai-nvkz.ru
 
 ## 📝 Как пользоваться
