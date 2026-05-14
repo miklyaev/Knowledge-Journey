@@ -353,12 +353,17 @@ app.post('/api/ai/evaluate', async (req, res) => {
 		// Парсим JSON из ответа ИИ
 		const jsonMatch = content.match(/\{[\s\S]*\}/);
 		if (jsonMatch) {
-			const result = JSON.parse(jsonMatch[0]);
-			res.json(result);
+			try {
+				const result = JSON.parse(jsonMatch[0]);
+				res.json(result);
+			} catch (parseError) {
+				console.error('JSON Parse Error. Content:', content);
+				throw new Error("Failed to parse AI evaluation JSON");
+			}
 		} else {
-			throw new Error("Failed to parse AI evaluation");
+			console.error('No JSON found in AI response. Content:', content);
+			throw new Error("Failed to find JSON in AI response");
 		}
-
 	} catch (error) {
 		console.error('Evaluation Error:', error);
 		res.status(500).json({ error: 'Failed to evaluate answer', score: 2, feedback: "Ошибка при связи с ИИ. Начислено минимальное количество баллов." });
