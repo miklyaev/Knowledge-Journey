@@ -65,9 +65,14 @@ const TimerFreeResponse: React.FC<TimerFreeResponseProps> = ({
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ question, answer: userInput, provider: 'gigachat' }),
-			}); const data = await res.json();
-			setResult(data);
+			});
 
+			if (!res.ok) {
+				throw new Error(`Server error: ${res.status}`);
+			}
+
+			const data = await res.json();
+			setResult(data);
 			if (onComplete) {
 				onComplete(data.score > 5, data.score, timeSpent);
 			}
