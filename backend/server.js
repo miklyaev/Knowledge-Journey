@@ -7,17 +7,23 @@ import { Agent } from 'node:https';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-
+import dbService from './dbservice.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Загружаем переменные окружения из .env файла в папке backend
 dotenv.config({ path: path.join(__dirname, '.env') });
 
-const app = express();
-app.use(cors());
+const app = express(); app.use(cors());
 app.use(express.json());
 
+// Эндпоинт для проверки статуса БД
+app.get('/api/db-status', (req, res) => {
+	res.json({
+		connected: dbService.isDbConnected,
+		enabled: dbService.dbEnabled
+	});
+});
 // Функция для записи логов в файл
 const logToFile = (message) => {
 	try {
@@ -99,11 +105,7 @@ const getSystemPrompt = () => {
 	}
 };
 // Обслуживание статических файлов frontend (для продакшена)
-// Import database service
-import dbService from './dbservice.js';
-
-// Проверяем, есть ли папка public (статические файлы frontend)
-app.use(express.static(path.join(__dirname, 'public')));
+// Проверяем, есть ли папка public (статические файлы frontend)app.use(express.static(path.join(__dirname, 'public')));
 
 // Инициализация GigaChat клиента
 let gigachatClient = null;
