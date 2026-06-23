@@ -5,9 +5,8 @@ services:
     image: mysql:8.0
     restart: always
     environment:
-      MYSQL_DATABASE: knowledge_journey
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
-    ports:
+      - MYSQL_DATABASE=knowledge_journey
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_password}    ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
@@ -25,7 +24,8 @@ services:
       - DB_NAME=knowledge_journey
       - PORT=3001
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
     build:
