@@ -5,12 +5,18 @@ services:
     image: mysql:8.0
     restart: always
     environment:
-      MYSQL_DATABASE: knowledge_journey
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: JourneyDb
+      MYSQL_ROOT_PASSWORD: YOUR_PASSWORD
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+    test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_password}"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 30s
 
   backend:
     build:
@@ -19,13 +25,14 @@ services:
     ports:
       - "3001:3001"
     environment:
-      DB_HOST: db
-      DB_USER: root
+      DB_HOST: 185.221.213.101
+      DB_USER: mikser
       DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
-      DB_NAME: knowledge_journey
+      DB_NAME: JourneyDb
       PORT: 3001
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
     build:
