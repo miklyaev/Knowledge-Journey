@@ -25,4 +25,4 @@ COPY --from=builder /app/package.json ./package.json
 
 EXPOSE 3030
 
-CMD ["npm", "start"]
+CMD ["npm", "start", "--", "-p", "3030"]

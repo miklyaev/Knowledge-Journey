@@ -21,9 +21,11 @@ services:
   backend:
     build:
       context: ./backend
+    env_file:
+      - ./backend/.env  # Docker Compose сам прочитает файл и передаст переменные в контейнер
     restart: always
     ports:
-      - "3001:3001"
+      - "3031:3001"
     environment:
       DB_HOST: 185.221.213.101
       DB_USER: mikser
@@ -41,7 +43,7 @@ services:
     ports:
       - "3030:3030"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_API_URL: https://ai-nvkz.ru/api
     depends_on:
       - backend
 
