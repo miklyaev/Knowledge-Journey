@@ -1,7 +1,6 @@
 // backend/server.js
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { GigaChat } from 'gigachat';
 import { Agent } from 'node:https';
 import path from 'path';
@@ -10,9 +9,6 @@ import fs from 'fs';
 import dbService from './dbservice.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Загружаем переменные окружения из .env файла в папке backend
-dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express(); app.use(cors());
 app.use(express.json());
