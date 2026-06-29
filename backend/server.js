@@ -33,6 +33,11 @@ const logToFile = (message) => {
 
 // Middleware для логирования всех входящих HTTP-запросов
 app.use((req, res, next) => {
+	// Исключаем запросы к health check из логов
+	if (req.originalUrl === '/api/health') {
+		return next();
+	}
+
 	const start = Date.now();
 	res.on('finish', () => {
 		const duration = Date.now() - start;
