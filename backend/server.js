@@ -167,8 +167,14 @@ const logRequest = async (aiProvider, prompt, referrer) => {
 // Прокси-эндпоинт для генерации текста
 app.post('/api/gigachat/generate', async (req, res) => {
 	try {
-		const { prompt, systemPrompt: customSystemPrompt } = req.body;
-		const systemPrompt = customSystemPrompt || getSystemPrompt();
+		const { prompt, systemPrompt: customSystemPrompt, topicPrompt } = req.body;
+		let systemPrompt = customSystemPrompt || getSystemPrompt();
+
+		if (topicPrompt) {
+			const lines = systemPrompt.split('\n');
+			lines[0] = topicPrompt;
+			systemPrompt = lines.join('\n');
+		}
 
 		if (!gigachatClient) {
 			return res.status(500).json({
@@ -220,12 +226,18 @@ app.post('/api/yandexgpt/generate', async (req, res) => {
 	try {
 		const {
 			prompt,
-			systemPrompt: customSystemPrompt
+			systemPrompt: customSystemPrompt,
+			topicPrompt
 		} = req.body;
-		const systemPrompt = customSystemPrompt || getSystemPrompt();
+		let systemPrompt = customSystemPrompt || getSystemPrompt();
+
+		if (topicPrompt) {
+			const lines = systemPrompt.split('\n');
+			lines[0] = topicPrompt;
+			systemPrompt = lines.join('\n');
+		}
 
 		const { YANDEXGPT_API_KEY, YANDEXGPT_FOLDER_ID } = process.env;
-
 		if (!YANDEXGPT_API_KEY || !YANDEXGPT_FOLDER_ID) {
 			return res.status(500).json({
 				error: 'YandexGPT API ключ или Folder ID не установлены',

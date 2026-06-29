@@ -61,5 +61,34 @@
       }
     ],
     "timestamp": "14.05.2026, 01:13:55"
+  },
+  {
+    "username": "new",
+    "topic": "давай начнём с азов",
+    "totalScore": 13,
+    "dateTime": "29.06.2026, 15:02:48",
+    "details": [
+      {
+        "question": "Что такое класс в C#?",
+        "isCorrect": true,
+        "timeSpent": 6
+      },
+      {
+        "question": "Методы в C# могут быть определены вне класса.",
+        "isCorrect": true,
+        "timeSpent": 6
+      },
+      {
+        "question": "Свойство в C# предоставляет доступ к _______ объекта.",
+        "isCorrect": false,
+        "timeSpent": 20
+      },
+      {
+        "question": "Объясните концепцию наследования в C#.",
+        "isCorrect": true,
+        "timeSpent": 135
+      }
+    ],
+    "timestamp": "29.06.2026, 15:02:48"
   }
 ]

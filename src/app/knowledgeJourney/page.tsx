@@ -12,14 +12,22 @@ import TimerOrderSteps from "@/components/TimerOrderSteps";
 import TimerFreeResponse from "@/components/TimerFreeResponse";
 import { Map, Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
 
+const TOPICS = [
+	{ id: 'none', title: 'Выберите тему...', prompt: null },
+	{ id: 'csharp', title: 'Изучение языка C#', prompt: 'Ты сениор разработчик в .NET и эксперт в языке C#, имеешь большой опыт в объяснении сложных тем другим Junior\\Middle разработчикам.' },
+	{ id: 'aspnet', title: 'Изучение технологии ASP.NET Core в C#', prompt: 'Ты сениор разработчик в .NET, эксперт в языке C# и эксперт в технологии ASP.NET Core. Имеешь большой опыт в объяснении сложных тем другим Junior\\Middle разработчикам.' },
+	{ id: 'ef', title: 'Изучение фреймворка EntityFrameWork', prompt: 'в разработке' },
+	{ id: 'js_node', title: 'Изучение языка JavaScript и фреймворка NodeJs', prompt: 'в разработке' },
+];
+
 const KnowledgeJourney = () => {
 	const { user } = useAuth();
 	const [journey, setJourney] = useState<any[] | null>(null); const [currentStep, setCurrentStep] = useState(0);
 	const [isFinished, setIsFinished] = useState(false);
 	const [resetTrigger, setResetTrigger] = useState(0);
 	const [topic, setTopic] = useState('');
-	const [totalScore, setTotalScore] = useState(0);
-	const [isStepFinished, setIsStepFinished] = useState(false);
+	const [selectedTopicId, setSelectedTopicId] = useState('none');
+	const [totalScore, setTotalScore] = useState(0); const [isStepFinished, setIsStepFinished] = useState(false);
 	const [lastPoints, setLastPoints] = useState(0);
 	const [showReport, setShowReport] = useState(false);
 	const [stepResults, setStepResults] = useState<any[]>([]);
@@ -137,12 +145,25 @@ const KnowledgeJourney = () => {
 				<GnomeWindow title="Маршрут обучения">
 					<div className="flex flex-col gap-2 p-6 w-full">
 						{!journey && (
-							<div className="w-full border-b border-gray-100 pb-2">
-								<div className="flex flex-col items-center justify-center py-[5px] text-gray-400 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
-									<div className="w-6 h-6 mb-1 opacity-20">
-										<Map className="w-full h-full" />
+							<div className="w-full border-b border-gray-100 pb-4">
+								<div className="flex flex-col items-center justify-center py-4 px-6 text-gray-600 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+									<div className="flex items-center gap-3 w-full max-w-md">
+										<Map className="w-6 h-6 text-ubuntu-orange opacity-70" />
+										<select
+											value={selectedTopicId}
+											onChange={(e) => setSelectedTopicId(e.target.value)}
+											className="flex-grow p-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-ubuntu-orange focus:border-ubuntu-orange outline-none transition-all text-sm font-medium"
+										>
+											{TOPICS.map(t => (
+												<option key={t.id} value={t.id}>{t.title}</option>
+											))}
+										</select>
 									</div>
-									<p className="text-sm font-medium">Опишите тему, чтобы сформировать маршрут...</p>
+									{selectedTopicId !== 'none' && TOPICS.find(t => t.id === selectedTopicId)?.prompt === 'в разработке' && (
+										<p className="mt-2 text-xs font-bold text-red-500 animate-pulse">
+											Эта тема сейчас в разработке
+										</p>
+									)}
 								</div>
 							</div>
 						)}
@@ -153,9 +174,10 @@ const KnowledgeJourney = () => {
 								resetTrigger={resetTrigger}
 								topic={topic}
 								onTopicDetected={setTopic}
+								topicPrompt={TOPICS.find(t => t.id === selectedTopicId)?.prompt}
+								isDisabled={selectedTopicId === 'none' || TOPICS.find(t => t.id === selectedTopicId)?.prompt === 'в разработке'}
 							/>
 						</div>
-
 						{journey && (
 							<div className="w-full border-t border-gray-100 pt-8">
 								{isFinished ? (

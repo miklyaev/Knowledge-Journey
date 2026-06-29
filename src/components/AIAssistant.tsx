@@ -17,9 +17,18 @@ interface AIAssistantProps {
   resetTrigger?: number;
   topic?: string;
   onTopicDetected?: (topic: string) => void;
+  topicPrompt?: string | null;
+  isDisabled?: boolean;
 }
 
-const AIAssistant: React.FC<AIAssistantProps> = ({ onJourneyGenerated, resetTrigger, topic, onTopicDetected }) => {
+const AIAssistant: React.FC<AIAssistantProps> = ({
+  onJourneyGenerated,
+  resetTrigger,
+  topic,
+  onTopicDetected,
+  topicPrompt,
+  isDisabled
+}) => {
   const [prompt, setPrompt] = useState('');
   const [provider, setProvider] = useState<AIProvider>('yandexgpt');
   const [response, setResponse] = useState('');
@@ -54,7 +63,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ onJourneyGenerated, resetTrig
   }, []);
 
   const handleSend = async () => {
-    if (!prompt.trim() || backendStatus !== 'online') return;
+    if (!prompt.trim() || backendStatus !== 'online' || isDisabled) return;
 
     // Если тема еще не задана, считаем текущий промпт темой
     if (!topic && onTopicDetected) {
@@ -71,9 +80,11 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ onJourneyGenerated, resetTrig
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({
+          prompt,
+          topicPrompt: topicPrompt && topicPrompt !== 'в разработке' ? topicPrompt : undefined
+        }),
       });
-
       const data = await res.json();
 
       if (res.ok) {
@@ -200,20 +211,23 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ onJourneyGenerated, resetTrig
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Введите ваш вопрос..."
-          className="w-full bg-white border border-gray-300 rounded-xl pl-4 pr-14 py-4 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-ubuntu-orange/20 focus:border-ubuntu-orange transition-all resize-none shadow-sm"
+          placeholder={isDisabled ? "Выберите доступную тему выше..." : "Введите ваш вопрос..."}
+          disabled={isDisabled}
+          className={cn(
+            "w-full bg-white border border-gray-300 rounded-xl pl-4 pr-14 py-4 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-ubuntu-orange/20 focus:border-ubuntu-orange transition-all resize-none shadow-sm",
+            isDisabled && "bg-gray-100 cursor-not-allowed opacity-60"
+          )}
           rows={2}
         />
         <button
           onClick={handleSend}
-          disabled={isLoading || !prompt.trim()}
+          disabled={isLoading || !prompt.trim() || isDisabled}
           className="absolute right-3 bottom-3 p-2.5 bg-ubuntu-orange hover:bg-[#ff632d] disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-lg transition-all shadow-md active:scale-95"
           aria-label="Отправить"
         >
           <Send size={18} />
         </button>
       </div>
-
       <div className="mt-4 text-[9px] text-gray-400 text-center uppercase tracking-[0.2em] font-bold">
         Интеллектуальный модуль: {provider === 'yandexgpt' ? 'Yandex Cloud' : 'Sber GigaChat'}
       </div>
