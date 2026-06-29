@@ -95,7 +95,24 @@ app.get('/api/auth', (req, res) => {
 	} catch (error) {
 		res.json({ users: [] });
 	}
-});// Функция для чтения системного промпта из файла
+});
+
+// Эндпоинт для получения списка тем из themeCollection.json
+app.get('/api/themes', (req, res) => {
+	try {
+		const themesPath = path.join(__dirname, 'themeCollection.json');
+		if (!fs.existsSync(themesPath)) {
+			return res.status(404).json({ error: 'Файл тем не найден' });
+		}
+		const themesData = fs.readFileSync(themesPath, 'utf8');
+		res.json(JSON.parse(themesData));
+	} catch (error) {
+		console.error('Error reading themes:', error);
+		res.status(500).json({ error: 'Ошибка при загрузке тем' });
+	}
+});
+
+// Функция для чтения системного промпта из файла
 const getSystemPrompt = () => {
 	try {
 		const promptPath = path.join(__dirname, 'systemPrompt.md');
@@ -105,9 +122,10 @@ const getSystemPrompt = () => {
 		return "Ты преподаватель в высшем техническом заведении."; // Фолбэк
 	}
 };
-// Обслуживание статических файлов frontend (для продакшена)
-// Проверяем, есть ли папка public (статические файлы frontend)app.use(express.static(path.join(__dirname, 'public')));
 
+// Обслуживание статических файлов frontend (для продакшена)
+// Проверяем, есть ли папка public (статические файлы frontend)
+app.use(express.static(path.join(__dirname, 'public')));
 // Инициализация GigaChat клиента
 let gigachatClient = null;
 

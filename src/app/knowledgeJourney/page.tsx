@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TopBar, GnomeWindow } from "@/components/GnomeUI";
 import { useAuth } from "@/lib/AuthContext";
 import AIAssistant from "@/components/AIAssistant"; import FinalReport from "@/components/FinalReport";
@@ -10,17 +10,19 @@ import TimerMatchPairs from "@/components/TimerMatchPairs";
 import TimerTrueFalse from "@/components/TimerTrueFalse";
 import TimerOrderSteps from "@/components/TimerOrderSteps";
 import TimerFreeResponse from "@/components/TimerFreeResponse";
-import { Map, Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Map, Sparkles, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { getPublicApiBaseUrl } from "@/lib/apiBase";
 
-const TOPICS = [
-	{ id: 'none', title: 'Выберите тему...', prompt: null },
-	{ id: 'csharp', title: 'Изучение языка C#', prompt: 'Ты сениор разработчик в .NET и эксперт в языке C#, имеешь большой опыт в объяснении сложных тем другим Junior\\Middle разработчикам.' },
-	{ id: 'aspnet', title: 'Изучение технологии ASP.NET Core в C#', prompt: 'Ты сениор разработчик в .NET, эксперт в языке C# и эксперт в технологии ASP.NET Core. Имеешь большой опыт в объяснении сложных тем другим Junior\\Middle разработчикам.' },
-	{ id: 'ef', title: 'Изучение фреймворка EntityFrameWork', prompt: 'Ты сениор разработчик в .NET и эксперт в языке C#, эксперт во фреймворке EntityFrameWork и в целом по базам данных, имеешь большой опыт в объяснении сложных тем другим Junior\\Middle разработчикам.' },
-	{ id: 'js_node', title: 'Изучение языка JavaScript и фреймворка NodeJs', prompt: 'Ты сениор фронтенд разработчик, эксперт в языке JavaScript\\Node.js и эксперт в технологиях ReactJS, VueJS, NextJS, JavaScript, TypeScript, HTML, CSS and modern UI/UX frameworks (e.g., TailwindCSS, Shadcn, Radix). Имеешь большой опыт в объяснении сложных тем другим Junior\\Middle разработчикам.' },
-];
+interface Topic {
+	id: string;
+	title: string;
+	prompt: string | null;
+}
+
 const KnowledgeJourney = () => {
 	const { user } = useAuth();
+	const [topics, setTopics] = useState<Topic[]>([{ id: 'none', title: 'Загрузка тем...', prompt: null }]);
+	const [isLoadingThemes, setIsLoadingThemes] = useState(true);
 	const [journey, setJourney] = useState<any[] | null>(null); const [currentStep, setCurrentStep] = useState(0);
 	const [isFinished, setIsFinished] = useState(false);
 	const [resetTrigger, setResetTrigger] = useState(0);
@@ -30,6 +32,24 @@ const KnowledgeJourney = () => {
 	const [lastPoints, setLastPoints] = useState(0);
 	const [showReport, setShowReport] = useState(false);
 	const [stepResults, setStepResults] = useState<any[]>([]);
+
+	useEffect(() => {
+		const fetchThemes = async () => {
+			try {
+				const baseUrl = getPublicApiBaseUrl();
+				const response = await fetch(`${baseUrl}/api/themes`);
+				if (!response.ok) throw new Error('Failed to fetch themes');
+				const data = await response.json();
+				setTopics([{ id: 'none', title: 'Выберите тему...', prompt: null }, ...data]);
+			} catch (error) {
+				console.error('Error loading themes:', error);
+				setTopics([{ id: 'none', title: 'Ошибка загрузки тем', prompt: null }]);
+			} finally {
+				setIsLoadingThemes(false);
+			}
+		};
+		fetchThemes();
+	}, []);
 
 	const handleJourneyGenerated = (data: any[]) => {
 		setJourney(data);
@@ -148,15 +168,23 @@ const KnowledgeJourney = () => {
 								<div className="flex flex-col items-center justify-center py-4 px-6 text-gray-600 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
 									<div className="flex items-center gap-3 w-full max-w-md">
 										<Map className="w-6 h-6 text-ubuntu-orange opacity-70" />
-										<select
-											value={selectedTopicId}
-											onChange={(e) => setSelectedTopicId(e.target.value)}
-											className="flex-grow p-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-ubuntu-orange focus:border-ubuntu-orange outline-none transition-all text-sm font-medium"
-										>
-											{TOPICS.map(t => (
-												<option key={t.id} value={t.id}>{t.title}</option>
-											))}
-										</select>
+										<div className="relative flex-grow">
+											<select
+												value={selectedTopicId}
+												onChange={(e) => setSelectedTopicId(e.target.value)}
+												disabled={isLoadingThemes}
+												className="w-full p-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-ubuntu-orange focus:border-ubuntu-orange outline-none transition-all text-sm font-medium disabled:bg-gray-100 disabled:cursor-not-allowed appearance-none"
+											>
+												{topics.map(t => (
+													<option key={t.id} value={t.id}>{t.title}</option>
+												))}
+											</select>
+											{isLoadingThemes && (
+												<div className="absolute right-3 top-1/2 -translate-y-1/2">
+													<Loader2 className="w-4 h-4 animate-spin text-ubuntu-orange" />
+												</div>
+											)}
+										</div>
 									</div>
 								</div>
 							</div>
@@ -168,10 +196,11 @@ const KnowledgeJourney = () => {
 								resetTrigger={resetTrigger}
 								topic={topic}
 								onTopicDetected={setTopic}
-								topicPrompt={TOPICS.find(t => t.id === selectedTopicId)?.prompt}
-								isDisabled={selectedTopicId === 'none'}
+								topicPrompt={topics.find(t => t.id === selectedTopicId)?.prompt}
+								isDisabled={selectedTopicId === 'none' || isLoadingThemes}
 							/>
-						</div>						{journey && (
+						</div>
+						{journey && (
 							<div className="w-full border-t border-gray-100 pt-8">
 								{isFinished ? (
 									<div className="flex flex-col items-center justify-center p-8 bg-white rounded-2xl border border-gray-200 shadow-sm animate-in fade-in zoom-in duration-300">
@@ -247,8 +276,8 @@ const KnowledgeJourney = () => {
 							</div>
 						)}
 					</div>
-				</GnomeWindow>
-			</div>
+				</GnomeWindow >
+			</div >
 
 			{showReport && (
 				<FinalReport
@@ -262,7 +291,7 @@ const KnowledgeJourney = () => {
 					topic={topic}
 					totalScore={totalScore}
 				/>)}
-		</main>);
+		</main >);
 };
 
 export default KnowledgeJourney;
