@@ -16,10 +16,9 @@ const TOPICS = [
 	{ id: 'none', title: 'Выберите тему...', prompt: null },
 	{ id: 'csharp', title: 'Изучение языка C#', prompt: 'Ты сениор разработчик в .NET и эксперт в языке C#, имеешь большой опыт в объяснении сложных тем другим Junior\\Middle разработчикам.' },
 	{ id: 'aspnet', title: 'Изучение технологии ASP.NET Core в C#', prompt: 'Ты сениор разработчик в .NET, эксперт в языке C# и эксперт в технологии ASP.NET Core. Имеешь большой опыт в объяснении сложных тем другим Junior\\Middle разработчикам.' },
-	{ id: 'ef', title: 'Изучение фреймворка EntityFrameWork', prompt: 'в разработке' },
-	{ id: 'js_node', title: 'Изучение языка JavaScript и фреймворка NodeJs', prompt: 'в разработке' },
+	{ id: 'ef', title: 'Изучение фреймворка EntityFrameWork', prompt: 'Ты сениор разработчик в .NET и эксперт в языке C#, эксперт во фреймворке EntityFrameWork и в целом по базам данных, имеешь большой опыт в объяснении сложных тем другим Junior\\Middle разработчикам.' },
+	{ id: 'js_node', title: 'Изучение языка JavaScript и фреймворка NodeJs', prompt: 'Ты сениор фронтенд разработчик, эксперт в языке JavaScript\\Node.js и эксперт в технологиях ReactJS, VueJS, NextJS, JavaScript, TypeScript, HTML, CSS and modern UI/UX frameworks (e.g., TailwindCSS, Shadcn, Radix). Имеешь большой опыт в объяснении сложных тем другим Junior\\Middle разработчикам.' },
 ];
-
 const KnowledgeJourney = () => {
 	const { user } = useAuth();
 	const [journey, setJourney] = useState<any[] | null>(null); const [currentStep, setCurrentStep] = useState(0);
@@ -159,11 +158,6 @@ const KnowledgeJourney = () => {
 											))}
 										</select>
 									</div>
-									{selectedTopicId !== 'none' && TOPICS.find(t => t.id === selectedTopicId)?.prompt === 'в разработке' && (
-										<p className="mt-2 text-xs font-bold text-red-500 animate-pulse">
-											Эта тема сейчас в разработке
-										</p>
-									)}
 								</div>
 							</div>
 						)}
@@ -175,10 +169,9 @@ const KnowledgeJourney = () => {
 								topic={topic}
 								onTopicDetected={setTopic}
 								topicPrompt={TOPICS.find(t => t.id === selectedTopicId)?.prompt}
-								isDisabled={selectedTopicId === 'none' || TOPICS.find(t => t.id === selectedTopicId)?.prompt === 'в разработке'}
+								isDisabled={selectedTopicId === 'none'}
 							/>
-						</div>
-						{journey && (
+						</div>						{journey && (
 							<div className="w-full border-t border-gray-100 pt-8">
 								{isFinished ? (
 									<div className="flex flex-col items-center justify-center p-8 bg-white rounded-2xl border border-gray-200 shadow-sm animate-in fade-in zoom-in duration-300">
