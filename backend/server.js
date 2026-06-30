@@ -6,8 +6,8 @@ import { Agent } from 'node:https';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import dbService from './dbservice.js';
-const __filename = fileURLToPath(import.meta.url);
+import bcrypt from 'bcryptjs';
+import dbService from './dbservice.js'; const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express(); app.use(cors());
@@ -49,31 +49,72 @@ app.use((req, res, next) => {
 });
 
 // Эндпоинты для авторизации
-app.post('/api/auth', (req, res) => {
+app.post('/api/auth', async (req, res) => {
 	try {
-		const { nickname, password } = req.body;
+		const { nickname, password, description } = req.body;
 
 		if (!nickname || /^\d/.test(nickname) || /\s/.test(nickname)) {
 			return res.status(400).json({ error: 'Недопустимый никнейм' });
 		}
 
-		const usersDir = path.join(__dirname, 'users');
-		if (!fs.existsSync(usersDir)) {
-			fs.mkdirSync(usersDir);
-		}
+		if (dbService.dbEnabled) {
+			const user = await dbService.getUserByUsername(nickname);
 
-		const filePath = path.join(usersDir, `${nickname}.txt`);
-
-		if (fs.existsSync(filePath)) {
-			const savedPassword = fs.readFileSync(filePath, 'utf8').trim();
-			if (savedPassword === password) {
-				return res.json({ success: true, nickname });
+			if (user) {
+				const isMatch = await bcrypt.compare(password, user.password);
+				if (isMatch) {
+					return res.json({ success: true, nickname });
+				} else {
+					return res.status(401).json({ error: 'Неверный пароль' });
+				}
 			} else {
-				return res.status(401).json({ error: 'Неверный пароль' });
+				if (!description) {
+					return res.json({ requiresDescription: true });
+				}
+				const hashedPassword = await bcrypt.hash(password, 10);
+				const success = await dbService.createUser(nickname, hashedPassword, description);
+				if (success) {
+					return res.json({ success: true, nickname, isNew: true });
+				} else {
+					return res.status(500).json({ error: 'Ошибка при создании пользователя в БД' });
+				}
 			}
 		} else {
-			fs.writeFileSync(filePath, password, 'utf8');
-			return res.json({ success: true, nickname, isNew: true });
+			const usersDir = path.join(__dirname, 'users');
+			if (!fs.existsSync(usersDir)) {
+				fs.mkdirSync(usersDir);
+			}
+
+			const filePath = path.join(usersDir, `${nickname}.json`);
+			const oldFilePath = path.join(usersDir, `${nickname}.txt`);
+
+			if (fs.existsSync(oldFilePath)) {
+				const savedPassword = fs.readFileSync(oldFilePath, 'utf8').trim();
+				if (savedPassword === password) {
+					return res.json({ success: true, nickname });
+				} else {
+					return res.status(401).json({ error: 'Неверный пароль' });
+				}
+			} else if (fs.existsSync(filePath)) {
+				const userData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+				const isMatch = await bcrypt.compare(password, userData.password);
+				if (isMatch) {
+					return res.json({ success: true, nickname });
+				} else {
+					return res.status(401).json({ error: 'Неверный пароль' });
+				}
+			} else {
+				if (!description) {
+					return res.json({ requiresDescription: true });
+				}
+				const hashedPassword = await bcrypt.hash(password, 10);
+				const userData = {
+					password: hashedPassword,
+					description: description
+				};
+				fs.writeFileSync(filePath, JSON.stringify(userData), 'utf8');
+				return res.json({ success: true, nickname, isNew: true });
+			}
 		}
 	} catch (error) {
 		console.error('Auth error:', error);
@@ -81,22 +122,27 @@ app.post('/api/auth', (req, res) => {
 	}
 });
 
-app.get('/api/auth', (req, res) => {
+app.get('/api/auth', async (req, res) => {
 	try {
-		const usersDir = path.join(__dirname, 'users');
-		if (!fs.existsSync(usersDir)) return res.json({ users: [] });
+		if (dbService.dbEnabled) {
+			const users = await dbService.getAllUsers();
+			return res.json({ users });
+		} else {
+			const usersDir = path.join(__dirname, 'users');
+			if (!fs.existsSync(usersDir)) return res.json({ users: [] });
 
-		const files = fs.readdirSync(usersDir);
-		const users = files
-			.filter(file => file.endsWith('.txt'))
-			.map(file => file.replace('.txt', ''));
+			const files = fs.readdirSync(usersDir);
+			const users = files
+				.filter(file => file.endsWith('.txt') || file.endsWith('.json'))
+				.map(file => file.replace(/\.(txt|json)$/, ''));
 
-		res.json({ users });
+			const uniqueUsers = [...new Set(users)];
+			res.json({ users: uniqueUsers });
+		}
 	} catch (error) {
 		res.json({ users: [] });
 	}
 });
-
 // Эндпоинт для получения списка тем из themeCollection.json
 app.get('/api/themes', (req, res) => {
 	try {
@@ -402,9 +448,17 @@ app.post('/api/ai/evaluate', async (req, res) => {
 });
 
 // Эндпоинт для получения всех отчетов пользователя
-app.get('/api/reports/:username', (req, res) => {
+app.get('/api/reports/:username', async (req, res) => {
 	try {
 		const { username } = req.params;
+
+		// 1. Пытаемся получить данные из БД
+		const dbReports = await dbService.getReportsByUsername(username);
+		if (dbReports !== null) {
+			return res.json(dbReports);
+		}
+
+		// 2. Фолбэк на файловую систему, если БД недоступна
 		const reportsDir = path.join(__dirname, 'reports');
 		const filePath = path.join(reportsDir, `${username}.json`);
 
@@ -421,8 +475,8 @@ app.get('/api/reports/:username', (req, res) => {
 	}
 });
 
-// Эндпоинт для сохранения финального отчета в JSON
-app.post('/api/save-report', (req, res) => {
+// Эндпоинт для сохранения финального отчета
+app.post('/api/save-report', async (req, res) => {
 	try {
 		const report = req.body;
 		const { username } = report;
@@ -431,7 +485,13 @@ app.post('/api/save-report', (req, res) => {
 			return res.status(400).json({ error: 'Username is required' });
 		}
 
-		// Создаем папку для отчетов, если её нет
+		// 1. Пытаемся сохранить в БД
+		const savedToDb = await dbService.saveReport(report);
+		if (savedToDb) {
+			return res.json({ success: true, message: 'Report saved to database' });
+		}
+
+		// 2. Фолбэк на файловую систему, если БД недоступна
 		const reportsDir = path.join(__dirname, 'reports');
 		if (!fs.existsSync(reportsDir)) {
 			fs.mkdirSync(reportsDir);
@@ -457,11 +517,21 @@ app.post('/api/save-report', (req, res) => {
 
 		reports.push(newEntry);
 
-		fs.writeFileSync(filePath, JSON.stringify(reports, null, 2)); res.json({ success: true, message: 'Report saved' });
+		fs.writeFileSync(filePath, JSON.stringify(reports, null, 2));
+		res.json({ success: true, message: 'Report saved to file (fallback)' });
 	} catch (error) {
 		console.error('Error saving report:', error);
 		res.status(500).json({ error: 'Failed to save report', details: error.message });
 	}
+});
+// Эндпоинт /api/data
+app.get('/api/data', (req, res) => {
+	res.json({
+		status: 'success',
+		data: {
+			message: 'Данные успешно получены'
+		}
+	});
 });
 
 // Health check endpoint (should be BEFORE the fallback route)

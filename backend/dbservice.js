@@ -135,6 +135,93 @@ class DatabaseService {
       return [];
     }
   }
-}
 
+  // Method to save a report
+  async saveReport(reportData) {
+    if (!this.dbEnabled) return false;
+    try {
+      const { username, topic, totalScore, details } = reportData;
+      const now = new Date();
+      const query = `
+        INSERT INTO t_reports (username, topic, total_score, date_time, details)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      const values = [username, topic, totalScore, now, JSON.stringify(details)];
+      await this.pool.query(query, values);
+      return true;
+    } catch (err) {
+      console.error('Database Error [saveReport]:', err.message);
+      return false;
+    }
+  }
+
+  // Method to get reports by username
+  async getReportsByUsername(username) {
+    if (!this.dbEnabled) return null;
+    try {
+      const [rows] = await this.pool.query(
+        'SELECT * FROM t_reports WHERE username = ? ORDER BY date_time ASC',
+        [username]
+      );
+
+      // Преобразуем данные из БД обратно в формат, ожидаемый фронтендом
+      return rows.map(row => {
+        const dateStr = new Date(row.date_time).toLocaleString('ru-RU');
+        return {
+          username: row.username,
+          topic: row.topic,
+          totalScore: row.total_score,
+          dateTime: dateStr,
+          details: typeof row.details === 'string' ? JSON.parse(row.details) : row.details,
+          timestamp: dateStr
+        };
+      });
+    } catch (err) {
+      console.error('Database Error [getReportsByUsername]:', err.message);
+      return null;
+    }
+  }
+  // Method to get a user by username
+  async getUserByUsername(username) {
+    if (!this.dbEnabled) return null;
+    try {
+      const [rows] = await this.pool.query(
+        'SELECT * FROM t_users WHERE username = ?',
+        [username]
+      );
+      return rows.length > 0 ? rows[0] : null;
+    } catch (err) {
+      console.error('Database Error [getUserByUsername]:', err.message);
+      return null;
+    }
+  }
+
+  // Method to create a new user
+  async createUser(username, passwordHash, description) {
+    if (!this.dbEnabled) return false;
+    try {
+      const query = `
+        INSERT INTO t_users (username, password, description)
+        VALUES (?, ?, ?)
+      `;
+      await this.pool.query(query, [username, passwordHash, description]);
+      return true;
+    } catch (err) {
+      console.error('Database Error [createUser]:', err.message);
+      return false;
+    }
+  }
+
+  // Method to get all users
+  async getAllUsers() {
+    if (!this.dbEnabled) return [];
+    try {
+      const [rows] = await this.pool.query('SELECT username FROM t_users ORDER BY created_at ASC');
+      return rows.map(row => row.username);
+    } catch (err) {
+      console.error('Database Error [getAllUsers]:', err.message);
+      return [];
+    }
+  }
+}
 export default new DatabaseService();

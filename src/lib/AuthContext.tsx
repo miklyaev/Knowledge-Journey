@@ -5,11 +5,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 interface AuthContextType {
   user: string | null;
   allUsers: string[];
-  login: (nickname: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (nickname: string, password: string, description?: string) => Promise<{ success: boolean; error?: string; requiresDescription?: boolean }>;
   logout: () => void;
   refreshUsers: () => Promise<void>;
 }
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -32,15 +31,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshUsers();
   }, []);
 
-  const login = async (nickname: string, password: string) => {
+  const login = async (nickname: string, password: string, description?: string) => {
     try {
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname, password }),
+        body: JSON.stringify({ nickname, password, description }),
       });
       const data = await res.json();
       if (res.ok) {
+        if (data.requiresDescription) {
+          return { success: false, requiresDescription: true };
+        }
         setUser(data.nickname);
         localStorage.setItem('kj_user', data.nickname);
         await refreshUsers();
@@ -51,7 +53,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'Ошибка соединения' };
     }
   };
-
   const logout = () => {
     setUser(null);
     localStorage.removeItem('kj_user');
