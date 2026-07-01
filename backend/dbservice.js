@@ -42,7 +42,6 @@ class DatabaseService {
       console.log('MySQL initial connection successful');
     } catch (err) {
       this.isDbConnected = false;
-      this.dbEnabled = false;
       console.error('MySQL initial connection failed. Database features disabled.', err.message);
     }
   }
@@ -59,7 +58,6 @@ class DatabaseService {
       return true;
     } catch (err) {
       this.isDbConnected = false;
-      this.dbEnabled = false;
       console.error('Database Connection Error [connect]:', err.message);
       return false;
     }
@@ -89,7 +87,6 @@ class DatabaseService {
       return result;
     } catch (err) {
       console.error('Database Error [insertRequest]:', err.message);
-      this.dbEnabled = false; // Отключаем после первой ошибки
       return null;
     }
   }

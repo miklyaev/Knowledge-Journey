@@ -29,7 +29,6 @@ package-lock.json
 *.tar.gz
 
 # Логи и кеш
-*.log
 .cache/
 .turbo/
 .DS_Store
