@@ -4,6 +4,11 @@ services:
   db:
     image: mysql:8.0
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       MYSQL_DATABASE: JourneyDb
       MYSQL_ROOT_PASSWORD: YOUR_PASSWORD
@@ -24,6 +29,11 @@ services:
     env_file:
       - ./backend/.env  # Docker Compose сам прочитает файл и передаст переменные в контейнер
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "3031:3001"
     environment:
@@ -40,6 +50,11 @@ services:
     build:
       context: .
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "3030:3030"
     environment:
