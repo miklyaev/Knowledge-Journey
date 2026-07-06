@@ -35,22 +35,21 @@ const KnowledgeJourney = () => {
 
 	useEffect(() => {
 		const fetchThemes = async () => {
+			const baseUrl = getPublicApiBaseUrl();
 			try {
-				const baseUrl = getPublicApiBaseUrl();
 				const response = await fetch(`${baseUrl}/api/themes`);
 				if (!response.ok) throw new Error('Failed to fetch themes');
 				const data = await response.json();
 				setTopics([{ id: 'none', title: 'Выберите тему...', prompt: null }, ...data]);
 			} catch (error) {
 				console.error('Error loading themes:', error);
-				setTopics([{ id: 'none', title: 'Ошибка загрузки тем из ${baseUrl}', prompt: null }]);
+				setTopics([{ id: 'none', title: `Ошибка загрузки тем из ${baseUrl}`, prompt: null }]);
 			} finally {
 				setIsLoadingThemes(false);
 			}
 		};
 		fetchThemes();
 	}, []);
-
 	const handleJourneyGenerated = (data: any[]) => {
 		setJourney(data);
 		setCurrentStep(0);
