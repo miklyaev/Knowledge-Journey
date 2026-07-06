@@ -35,13 +35,13 @@ services:
         max-size: "10m"
         max-file: "3"
     ports:
-      - "3031:3001"
+      - "3031:3031"
     environment:
-      DB_HOST: 185.221.213.101
-      DB_USER: mikser
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
-      DB_NAME: JourneyDb
-      PORT: 3001
+      - DB_HOST=db
+      - DB_USER=mikser
+      - DB_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_password}
+      - DB_NAME=JourneyDb
+      - PORT=3031
     depends_on:
       db:
         condition: service_healthy
@@ -49,6 +49,8 @@ services:
   frontend:
     build:
       context: .
+    env_file:
+      - .env  # Docker Compose сам прочитает файл и передаст переменные в контейнер
     restart: always
     logging:
       driver: "json-file"
@@ -58,7 +60,7 @@ services:
     ports:
       - "3030:3030"
     environment:
-      NEXT_PUBLIC_API_URL: https://ai-nvkz.ru
+      - NEXT_PUBLIC_API_BASE_URL=http://ai-nvkz.ru:3031
     depends_on:
       - backend
 
