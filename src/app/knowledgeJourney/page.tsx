@@ -43,7 +43,7 @@ const KnowledgeJourney = () => {
 				setTopics([{ id: 'none', title: 'Выберите тему...', prompt: null }, ...data]);
 			} catch (error) {
 				console.error('Error loading themes:', error);
-				setTopics([{ id: 'none', title: 'Ошибка загрузки тем', prompt: null }]);
+				setTopics([{ id: 'none', title: 'Ошибка загрузки тем из ${baseUrl}', prompt: null }]);
 			} finally {
 				setIsLoadingThemes(false);
 			}

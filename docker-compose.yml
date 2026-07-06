@@ -58,7 +58,7 @@ services:
     ports:
       - "3030:3030"
     environment:
-      NEXT_PUBLIC_API_URL: https://ai-nvkz.ru/api
+      NEXT_PUBLIC_API_URL: https://ai-nvkz.ru
     depends_on:
       - backend
 
