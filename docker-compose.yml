@@ -2,9 +2,10 @@ version: '3.8'
 
 services:
   db:
-    image: mysql:8.0
-    restart: always
-    logging:
+    build:
+      context: .
+      dockerfile: mysql/Dockerfile
+    restart: always    logging:
       driver: "json-file"
       options:
         max-size: "10m"
@@ -41,6 +42,7 @@ services:
       - DB_USER=mikser
       - DB_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_password}
       - DB_NAME=JourneyDb
+      - DB_PORT=3306
       - PORT=3031
     depends_on:
       db:
@@ -49,8 +51,6 @@ services:
   frontend:
     build:
       context: .
-    env_file:
-      - .env  # Docker Compose сам прочитает файл и передаст переменные в контейнер
     restart: always
     logging:
       driver: "json-file"
