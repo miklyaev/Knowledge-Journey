@@ -5,14 +5,17 @@ services:
     build:
       context: .
       dockerfile: mysql/Dockerfile
-    restart: always    logging:
+    restart: always
+    logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
     environment:
       MYSQL_DATABASE: JourneyDb
-      MYSQL_ROOT_PASSWORD: YOUR_PASSWORD
+      MYSQL_ROOT_PASSWORD: YOUR_ROOT_PASSWORD # Пароль суперпользователя
+      MYSQL_USER: mikser                   # Создать пользователя mikser
+      MYSQL_PASSWORD: YOUR_USER_PASSWORD   # Пароль для mikser
     ports:
       - "3306:3306"
     volumes:
