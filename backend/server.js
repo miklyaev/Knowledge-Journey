@@ -13,24 +13,6 @@ const __dirname = path.dirname(__filename);
 const app = express(); app.use(cors());
 app.use(express.json());
 
-// Эндпоинт для проверки статуса БД
-app.get('/api/db-status', (req, res) => {
-	res.json({
-		connected: dbService.isDbConnected,
-		enabled: dbService.dbEnabled
-	});
-});
-// Функция для записи логов в файл
-const logToFile = (message) => {
-	try {
-		const logPath = path.join(__dirname, 'server.log');
-		const timestamp = new Date().toLocaleString('ru-RU');
-		fs.appendFileSync(logPath, `[${timestamp}] ${message}\n`, 'utf8');
-	} catch (err) {
-		console.error('Ошибка записи в лог-файл:', err);
-	}
-};
-
 // Middleware для логирования всех входящих HTTP-запросов
 app.use((req, res, next) => {
 	// Исключаем запросы к health check из логов
@@ -43,7 +25,7 @@ app.use((req, res, next) => {
 		const duration = Date.now() - start;
 		const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
 		const logLine = `${req.method} ${fullUrl} ${res.statusCode} - ${duration}ms`;
-		logToFile(logLine);
+		console.log(logLine);
 	});
 	next();
 });
@@ -57,63 +39,25 @@ app.post('/api/auth', async (req, res) => {
 			return res.status(400).json({ error: 'Недопустимый никнейм' });
 		}
 
-		if (dbService.dbEnabled) {
-			const user = await dbService.getUserByUsername(nickname);
+		const user = await dbService.getUserByUsername(nickname);
 
-			if (user) {
-				const isMatch = await bcrypt.compare(password, user.password);
-				if (isMatch) {
-					return res.json({ success: true, nickname });
-				} else {
-					return res.status(401).json({ error: 'Неверный пароль' });
-				}
+		if (user) {
+			const isMatch = await bcrypt.compare(password, user.password);
+			if (isMatch) {
+				return res.json({ success: true, nickname });
 			} else {
-				if (!description) {
-					return res.json({ requiresDescription: true });
-				}
-				const hashedPassword = await bcrypt.hash(password, 10);
-				const success = await dbService.createUser(nickname, hashedPassword, description);
-				if (success) {
-					return res.json({ success: true, nickname, isNew: true });
-				} else {
-					return res.status(500).json({ error: 'Ошибка при создании пользователя в БД' });
-				}
+				return res.status(401).json({ error: 'Неверный пароль' });
 			}
 		} else {
-			const usersDir = path.join(__dirname, 'users');
-			if (!fs.existsSync(usersDir)) {
-				fs.mkdirSync(usersDir);
+			if (!description) {
+				return res.json({ requiresDescription: true });
 			}
-
-			const filePath = path.join(usersDir, `${nickname}.json`);
-			const oldFilePath = path.join(usersDir, `${nickname}.txt`);
-
-			if (fs.existsSync(oldFilePath)) {
-				const savedPassword = fs.readFileSync(oldFilePath, 'utf8').trim();
-				if (savedPassword === password) {
-					return res.json({ success: true, nickname });
-				} else {
-					return res.status(401).json({ error: 'Неверный пароль' });
-				}
-			} else if (fs.existsSync(filePath)) {
-				const userData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-				const isMatch = await bcrypt.compare(password, userData.password);
-				if (isMatch) {
-					return res.json({ success: true, nickname });
-				} else {
-					return res.status(401).json({ error: 'Неверный пароль' });
-				}
-			} else {
-				if (!description) {
-					return res.json({ requiresDescription: true });
-				}
-				const hashedPassword = await bcrypt.hash(password, 10);
-				const userData = {
-					password: hashedPassword,
-					description: description
-				};
-				fs.writeFileSync(filePath, JSON.stringify(userData), 'utf8');
+			const hashedPassword = await bcrypt.hash(password, 10);
+			const success = await dbService.createUser(nickname, hashedPassword, description);
+			if (success) {
 				return res.json({ success: true, nickname, isNew: true });
+			} else {
+				return res.status(500).json({ error: 'Ошибка при создании пользователя в БД' });
 			}
 		}
 	} catch (error) {
@@ -124,26 +68,12 @@ app.post('/api/auth', async (req, res) => {
 
 app.get('/api/auth', async (req, res) => {
 	try {
-		if (dbService.dbEnabled) {
-			const users = await dbService.getAllUsers();
-			return res.json({ users });
-		} else {
-			const usersDir = path.join(__dirname, 'users');
-			if (!fs.existsSync(usersDir)) return res.json({ users: [] });
-
-			const files = fs.readdirSync(usersDir);
-			const users = files
-				.filter(file => file.endsWith('.txt') || file.endsWith('.json'))
-				.map(file => file.replace(/\.(txt|json)$/, ''));
-
-			const uniqueUsers = [...new Set(users)];
-			res.json({ users: uniqueUsers });
-		}
+		const users = await dbService.getAllUsers();
+		return res.json({ users });
 	} catch (error) {
 		res.json({ users: [] });
 	}
-});
-// Эндпоинт для получения списка тем из themeCollection.json
+});// Эндпоинт для получения списка тем из themeCollection.json
 app.get('/api/themes', (req, res) => {
 	try {
 		const themesPath = path.join(__dirname, 'themeCollection.json');
@@ -218,9 +148,6 @@ const logRequest = async (aiProvider, prompt, referrer) => {
 
 		// Insert request data into the database
 		await dbService.insertRequest(aiProvider, referrerValue, prompt);
-
-		// Логирование в файл (без тела промпта)
-		logToFile(`AI_API_CALL: Provider=${aiProvider}, Referrer=${referrerValue}, PromptLength=${prompt?.length || 0}`);
 
 		console.log(`Запрос успешно записан в БД: ${aiProvider}, длина промпта: ${prompt?.length || 0}`);
 	} catch (error) {
@@ -451,24 +378,11 @@ app.post('/api/ai/evaluate', async (req, res) => {
 app.get('/api/reports/:username', async (req, res) => {
 	try {
 		const { username } = req.params;
-
-		// 1. Пытаемся получить данные из БД
 		const dbReports = await dbService.getReportsByUsername(username);
 		if (dbReports !== null) {
 			return res.json(dbReports);
 		}
-
-		// 2. Фолбэк на файловую систему, если БД недоступна
-		const reportsDir = path.join(__dirname, 'reports');
-		const filePath = path.join(reportsDir, `${username}.json`);
-
-		if (!fs.existsSync(filePath)) {
-			return res.json([]);
-		}
-
-		const fileData = fs.readFileSync(filePath, 'utf8');
-		const reports = JSON.parse(fileData);
-		res.json(Array.isArray(reports) ? reports : [reports]);
+		res.json([]);
 	} catch (error) {
 		console.error('Error fetching reports:', error);
 		res.status(500).json({ error: 'Failed to fetch reports' });
@@ -485,46 +399,17 @@ app.post('/api/save-report', async (req, res) => {
 			return res.status(400).json({ error: 'Username is required' });
 		}
 
-		// 1. Пытаемся сохранить в БД
 		const savedToDb = await dbService.saveReport(report);
 		if (savedToDb) {
 			return res.json({ success: true, message: 'Report saved to database' });
+		} else {
+			return res.status(500).json({ error: 'Failed to save report to database' });
 		}
-
-		// 2. Фолбэк на файловую систему, если БД недоступна
-		const reportsDir = path.join(__dirname, 'reports');
-		if (!fs.existsSync(reportsDir)) {
-			fs.mkdirSync(reportsDir);
-		}
-
-		const filePath = path.join(reportsDir, `${username}.json`);
-
-		let reports = [];
-		if (fs.existsSync(filePath)) {
-			const fileData = fs.readFileSync(filePath, 'utf8');
-			try {
-				const parsedData = JSON.parse(fileData);
-				reports = Array.isArray(parsedData) ? parsedData : [parsedData];
-			} catch (e) {
-				reports = [];
-			}
-		}
-
-		const newEntry = {
-			...report,
-			timestamp: new Date().toLocaleString('ru-RU')
-		};
-
-		reports.push(newEntry);
-
-		fs.writeFileSync(filePath, JSON.stringify(reports, null, 2));
-		res.json({ success: true, message: 'Report saved to file (fallback)' });
 	} catch (error) {
 		console.error('Error saving report:', error);
 		res.status(500).json({ error: 'Failed to save report', details: error.message });
 	}
-});
-// Эндпоинт /api/data
+});// Эндпоинт /api/data
 app.get('/api/data', (req, res) => {
 	res.json({
 		status: 'success',
@@ -558,10 +443,11 @@ dbService.connect()
 		console.log('Database service connected successfully');
 	})
 	.catch(err => {
-		console.error('Failed to connect to database:', err);
-	});
-
-// Graceful shutdown handling
+		const errorMsg = `FATAL: Failed to connect to database: ${err.message}`;
+		console.error(errorMsg);
+		// Завершаем работу, так как БД теперь обязательна
+		process.exit(1);
+	});// Graceful shutdown handling
 process.on('SIGINT', async () => {
 	console.log('\nShutting down gracefully...');
 	await dbService.disconnect();

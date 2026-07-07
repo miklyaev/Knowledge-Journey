@@ -3,8 +3,7 @@
 import { TopBar, GnomeWindow, AuthModal } from "@/components/GnomeUI";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react"; import { useRouter } from "next/navigation";
 
 const HomePage = () => {
 	const { user } = useAuth();
@@ -20,9 +19,7 @@ const HomePage = () => {
 
 	return (
 		<main className="h-screen w-screen overflow-hidden flex flex-col">
-			<TopBar />
-
-			<div className="flex-grow flex items-center justify-center p-4 mt-8">
+			<TopBar />			<div className="flex-grow flex items-center justify-center p-4 mt-8">
 				<GnomeWindow title="Интерактивная система обучения">
 					<article className="prose prose-slate max-w-none">
 						<h1>Почему традиционное обучение по текстам неэффективно?</h1>

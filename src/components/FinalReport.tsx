@@ -54,12 +54,11 @@ const FinalReport: React.FC<FinalReportProps> = ({
         details: results,
       };
 
-      const response = await fetch(`${getPublicApiBaseUrl()}/api/save-report`, {
+      const response = await fetch("/api/save-report", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-        },
-        body: JSON.stringify(reportData),
+        }, body: JSON.stringify(reportData),
       });
 
       if (response.ok) {

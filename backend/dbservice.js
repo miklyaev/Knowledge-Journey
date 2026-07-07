@@ -14,7 +14,6 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 class DatabaseService {
   constructor() {
     this.isDbConnected = false;
-    this.dbEnabled = true;
 
     // Initialize MySQL connection pool
     this.pool = mysql.createPool({
@@ -23,31 +22,18 @@ class DatabaseService {
       database: process.env.DB_NAME,
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
-      connectionLimit: 20, waitForConnections: true,
+      connectionLimit: 20,
+      waitForConnections: true,
       queueLimit: 0,
       enableKeepAlive: true,
       keepAliveInitialDelay: 0,
-      connectTimeout: 5000 // Таймаут 5 секунд для быстрой проверки
+      connectTimeout: 10000, // Увеличим таймаут для Docker окружения
+      charset: 'UTF8MB4_GENERAL_CI'
     });
-
     console.log('MySQL pool initialized');
-    this.checkInitialConnection();
-  }
-
-  async checkInitialConnection() {
-    try {
-      const connection = await this.pool.getConnection();
-      connection.release();
-      this.isDbConnected = true;
-      console.log('MySQL initial connection successful');
-    } catch (err) {
-      this.isDbConnected = false;
-      console.error('MySQL initial connection failed. Database features disabled.', err.message);
-    }
   }
 
   async connect() {
-    if (!this.dbEnabled) return false;
     try {
       const connection = await this.pool.getConnection();
       console.log('MySQL pool connected successfully');
@@ -58,13 +44,14 @@ class DatabaseService {
       return true;
     } catch (err) {
       this.isDbConnected = false;
-      console.error('Database Connection Error [connect]:', err.message);
-      return false;
+      const errorMessage = `CRITICAL DATABASE ERROR: ${err.message}`;
+      console.error(errorMessage);
+      // Мы не выходим здесь сразу, чтобы server.js мог записать лог и корректно завершиться
+      throw err;
     }
   }
 
   async disconnect() {
-    if (!this.dbEnabled) return;
     try {
       await this.pool.end();
       console.log('MySQL pool disconnected');
@@ -75,7 +62,6 @@ class DatabaseService {
 
   // Method to insert request data into t_requests table
   async insertRequest(neuronet, fromUrl, prompt) {
-    if (!this.dbEnabled) return null;
     try {
       const now = new Date();
       const query = `
@@ -93,7 +79,6 @@ class DatabaseService {
 
   // Method to get all requests from the database
   async getAllRequests() {
-    if (!this.dbEnabled) return [];
     try {
       const [rows] = await this.pool.query('SELECT * FROM t_requests ORDER BY datetime DESC');
       return rows;
@@ -105,7 +90,6 @@ class DatabaseService {
 
   // Method to get requests by neuronet
   async getRequestsByNeuronet(neuronet) {
-    if (!this.dbEnabled) return [];
     try {
       const [rows] = await this.pool.query(
         'SELECT * FROM t_requests WHERE neuronet = ? ORDER BY datetime DESC',
@@ -120,7 +104,6 @@ class DatabaseService {
 
   // Method to get requests by date range
   async getRequestsByDateRange(startDate, endDate) {
-    if (!this.dbEnabled) return [];
     try {
       const [rows] = await this.pool.query(
         'SELECT * FROM t_requests WHERE datetime BETWEEN ? AND ? ORDER BY datetime DESC',
@@ -135,7 +118,6 @@ class DatabaseService {
 
   // Method to save a report
   async saveReport(reportData) {
-    if (!this.dbEnabled) return false;
     try {
       const { username, topic, totalScore, details } = reportData;
       const now = new Date();
@@ -154,7 +136,6 @@ class DatabaseService {
 
   // Method to get reports by username
   async getReportsByUsername(username) {
-    if (!this.dbEnabled) return null;
     try {
       const [rows] = await this.pool.query(
         'SELECT * FROM t_reports WHERE username = ? ORDER BY date_time ASC',
@@ -180,7 +161,6 @@ class DatabaseService {
   }
   // Method to get a user by username
   async getUserByUsername(username) {
-    if (!this.dbEnabled) return null;
     try {
       const [rows] = await this.pool.query(
         'SELECT * FROM t_users WHERE username = ?',
@@ -195,23 +175,28 @@ class DatabaseService {
 
   // Method to create a new user
   async createUser(username, passwordHash, description) {
-    if (!this.dbEnabled) return false;
+    let connection;
     try {
+      connection = await this.pool.getConnection();
       const query = `
         INSERT INTO t_users (username, password, description)
         VALUES (?, ?, ?)
       `;
-      await this.pool.query(query, [username, passwordHash, description]);
+      await connection.query(query, [username, passwordHash, description]);
       return true;
     } catch (err) {
-      console.error('Database Error [createUser]:', err.message);
+      console.error('Database Error [createUser]:', {
+        message: err.message,
+        code: err.code,
+        sql: err.sql
+      });
       return false;
+    } finally {
+      if (connection) connection.release();
     }
   }
-
   // Method to get all users
   async getAllUsers() {
-    if (!this.dbEnabled) return [];
     try {
       const [rows] = await this.pool.query('SELECT username FROM t_users ORDER BY created_at ASC');
       return rows.map(row => row.username);
