@@ -205,5 +205,38 @@ class DatabaseService {
       return [];
     }
   }
-}
-export default new DatabaseService();
+
+  // Method to save PDF metadata
+  async savePdfMetadata(pdfId, themeId, filename, sections) {
+    try {
+      const query = `
+        INSERT INTO t_pdfs (id, theme_id, filename, sections_json)
+        VALUES (?, ?, ?, ?)
+      `;
+      await this.pool.query(query, [pdfId, themeId, filename, JSON.stringify(sections)]);
+      return true;
+    } catch (err) {
+      console.error('Database Error [savePdfMetadata]:', err.message);
+      return false;
+    }
+  }
+
+  // Method to get PDF sections
+  async getPdfSections(pdfId) {
+    try {
+      const [rows] = await this.pool.query(
+        'SELECT sections_json FROM t_pdfs WHERE id = ?',
+        [pdfId]
+      );
+      if (rows.length > 0) {
+        return typeof rows[0].sections_json === 'string'
+          ? JSON.parse(rows[0].sections_json)
+          : rows[0].sections_json;
+      }
+      return null;
+    } catch (err) {
+      console.error('Database Error [getPdfSections]:', err.message);
+      return null;
+    }
+  }
+} export default new DatabaseService();

@@ -19,15 +19,20 @@ interface AIAssistantProps {
   onTopicDetected?: (topic: string) => void;
   topicPrompt?: string | null;
   isDisabled?: boolean;
+  pdfId?: string | null;
+  selectedSection?: string | null;
+  themeId?: string;
 }
-
 const AIAssistant: React.FC<AIAssistantProps> = ({
   onJourneyGenerated,
   resetTrigger,
   topic,
   onTopicDetected,
   topicPrompt,
-  isDisabled
+  isDisabled,
+  pdfId,
+  selectedSection,
+  themeId
 }) => {
   const [prompt, setPrompt] = useState('');
   const [provider, setProvider] = useState<AIProvider>('yandexgpt');
@@ -82,7 +87,10 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         },
         body: JSON.stringify({
           prompt,
-          topicPrompt: topicPrompt && topicPrompt !== 'в разработке' ? topicPrompt : undefined
+          topicPrompt: topicPrompt && topicPrompt !== 'в разработке' ? topicPrompt : undefined,
+          pdfId,
+          selectedSection,
+          themeId
         }),
       });
       const data = await res.json();
@@ -196,8 +204,12 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         ) : response ? (
           <div className="prose prose-slate max-w-none">
             <p className="whitespace-pre-wrap text-gray-700 leading-relaxed text-sm">{response}</p>
-          </div>
-        ) : (
+            {pdfId && (
+              <div className="mt-4 pt-2 border-t border-gray-100 text-[10px] text-gray-400 italic">
+                Источник: База знаний {selectedSection ? `(раздел: ${selectedSection})` : ''}
+              </div>
+            )}
+          </div>) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
             <Sparkles size={32} className="opacity-10" />
             <p className="text-sm italic">Задайте вопрос по учебному материалу...</p>

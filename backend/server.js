@@ -7,12 +7,35 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
-import dbService from './dbservice.js'; const __filename = fileURLToPath(import.meta.url);
+import dbService from './dbservice.js';
+import multer from 'multer';
+import { v4 as uuidv4 } from 'uuid';
+import { parsePDF, extractSections } from './rag/pdfParser.js';
+import { chunkBySection } from './rag/chunker.js';
+import vectorStore from './rag/vectorStore.js';
+
+const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express(); app.use(cors());
 app.use(express.json());
 
+// Настройка multer для загрузки PDF
+const storage = multer.diskStorage({
+	destination: (req, file, cb) => {
+		const themeId = req.body.themeId || 'default';
+		const dir = path.join(__dirname, 'knowledge_base', themeId);
+		if (!fs.existsSync(dir)) {
+			fs.mkdirSync(dir, { recursive: true });
+		}
+		cb(null, dir);
+	},
+	filename: (req, file, cb) => {
+		const ext = path.extname(file.originalname);
+		cb(null, `${uuidv4()}${ext}`);
+	}
+});
+const upload = multer({ storage });
 // Middleware для логирования всех входящих HTTP-запросов
 app.use((req, res, next) => {
 	// Исключаем запросы к health check из логов
@@ -163,9 +186,21 @@ const logRequest = async (aiProvider, prompt, referrer) => {
 // Прокси-эндпоинт для генерации текста
 app.post('/api/gigachat/generate', async (req, res) => {
 	try {
-		const { prompt, systemPrompt: customSystemPrompt, topicPrompt } = req.body;
+		const { prompt, systemPrompt: customSystemPrompt, topicPrompt, pdfId, selectedSection, themeId } = req.body;
 		let systemPrompt = customSystemPrompt || getSystemPrompt();
 
+		// RAG: Получение контекста
+		if (pdfId && gigachatClient) {
+			try {
+				const chunks = await vectorStore.searchChunks(gigachatClient, prompt, { pdfId, sectionTitle: selectedSection, themeId });
+				if (chunks && chunks.length > 0) {
+					const context = chunks.map(c => c.text).join('\n---\n');
+					systemPrompt += `\n\nКонтекст из базы знаний:\n---\n${context}\n---\nИспользуй этот контекст для ответа на вопрос.`;
+				}
+			} catch (ragError) {
+				console.error('RAG Error in GigaChat generate:', ragError);
+			}
+		}
 		if (topicPrompt) {
 			const lines = systemPrompt.split('\n');
 			lines[0] = topicPrompt;
@@ -223,10 +258,25 @@ app.post('/api/yandexgpt/generate', async (req, res) => {
 		const {
 			prompt,
 			systemPrompt: customSystemPrompt,
-			topicPrompt
+			topicPrompt,
+			pdfId,
+			selectedSection,
+			themeId
 		} = req.body;
 		let systemPrompt = customSystemPrompt || getSystemPrompt();
 
+		// RAG: Получение контекста
+		if (pdfId && gigachatClient) {
+			try {
+				const chunks = await vectorStore.searchChunks(gigachatClient, prompt, { pdfId, sectionTitle: selectedSection, themeId });
+				if (chunks && chunks.length > 0) {
+					const context = chunks.map(c => c.text).join('\n---\n');
+					systemPrompt += `\n\nКонтекст из базы знаний:\n---\n${context}\n---\nИспользуй этот контекст для ответа на вопрос.`;
+				}
+			} catch (ragError) {
+				console.error('RAG Error in YandexGPT generate:', ragError);
+			}
+		}
 		if (topicPrompt) {
 			const lines = systemPrompt.split('\n');
 			lines[0] = topicPrompt;
@@ -386,6 +436,80 @@ app.get('/api/reports/:username', async (req, res) => {
 	} catch (error) {
 		console.error('Error fetching reports:', error);
 		res.status(500).json({ error: 'Failed to fetch reports' });
+	}
+});
+
+// Эндпоинт для загрузки и индексации PDF
+app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
+	try {
+		const { themeId } = req.body;
+		const file = req.file;
+
+		if (!file) {
+			return res.status(400).json({ error: 'Файл не загружен' });
+		}
+
+		const pdfId = path.basename(file.filename, path.extname(file.filename));
+		const filePath = file.path;
+
+		// 1. Парсинг
+		const text = await parsePDF(filePath);
+
+		// 2. Извлечение разделов
+		const sections = extractSections(text);
+
+		// 3. Чанкинг
+		const chunks = chunkBySection(sections, pdfId, themeId);
+
+		// 4. Векторизация и сохранение в ChromaDB
+		if (gigachatClient) {
+			await vectorStore.addChunks(gigachatClient, chunks);
+		}
+
+		// 5. Сохранение метаданных в MySQL
+		const sectionList = sections.map((s, index) => ({ id: `${pdfId}_${index}`, title: s.title }));
+		await dbService.savePdfMetadata(pdfId, themeId, file.originalname, sectionList);
+
+		res.json({
+			pdfId,
+			filename: file.originalname,
+			sections: sectionList
+		});
+	} catch (error) {
+		console.error('PDF Upload/Index Error:', error);
+		res.status(500).json({ error: 'Ошибка при обработке PDF', details: error.message });
+	}
+});
+
+// Эндпоинт для получения разделов PDF
+app.get('/api/pdf/sections/:pdfId', async (req, res) => {
+	try {
+		const { pdfId } = req.params;
+		const sections = await dbService.getPdfSections(pdfId);
+		if (!sections) {
+			return res.status(404).json({ error: 'Разделы не найдены' });
+		}
+		res.json(sections);
+	} catch (error) {
+		console.error('Get Sections Error:', error);
+		res.status(500).json({ error: 'Ошибка при получении разделов' });
+	}
+});
+
+// Эндпоинт для поиска в базе знаний (RAG retrieval)
+app.post('/api/rag/retrieve', async (req, res) => {
+	try {
+		const { query, themeId, pdfId, sectionTitle, topK = 5 } = req.body;
+
+		if (!gigachatClient) {
+			return res.status(500).json({ error: 'GigaChat клиент не инициализирован' });
+		}
+
+		const chunks = await vectorStore.searchChunks(gigachatClient, query, { themeId, pdfId, sectionTitle }, topK);
+		res.json({ chunks });
+	} catch (error) {
+		console.error('RAG Retrieval Error:', error);
+		res.status(500).json({ error: 'Ошибка при поиске в базе знаний' });
 	}
 });
 
