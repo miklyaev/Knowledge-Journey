@@ -14,7 +14,7 @@ services:
     environment:
       MYSQL_DATABASE: JourneyDb
       MYSQL_ROOT_PASSWORD: YOUR_ROOT_PASSWORD # Пароль суперпользователя
-      MYSQL_USER: mikser                   # Создать пользователя mikser
+      MYSQL_USER: YOUR_USER                   # Создать пользователя mikser
       MYSQL_PASSWORD: YOUR_USER_PASSWORD   # Пароль для mikser
     ports:
       - "3306:3306"
@@ -42,8 +42,8 @@ services:
       - "3031:3031"
     environment:
       - DB_HOST=db
-      - DB_USER=mikser
-      - DB_PASSWORD=${MYSQL_PASSWORD:-root_password}
+      - DB_USER=YOUR_USER
+      - DB_PASSWORD=YOUR_USER_PASSWORD
       - DB_NAME=JourneyDb
       - DB_PORT=3306
       - PORT=3031
