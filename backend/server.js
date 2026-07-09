@@ -453,23 +453,38 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 		const filePath = file.path;
 
 		// 1. Парсинг
+		console.log('Starting PDF parsing...');
 		const text = await parsePDF(filePath);
+		console.log('PDF parsed successfully, text length:', text.length);
 
 		// 2. Извлечение разделов
+		console.log('Extracting sections...');
 		const sections = extractSections(text);
+		console.log('Extracted sections:', sections.length);
 
 		// 3. Чанкинг
+		console.log('Chunking sections...');
 		const chunks = chunkBySection(sections, pdfId, themeId);
+		console.log('Total chunks created:', chunks.length);
 
 		// 4. Векторизация и сохранение в ChromaDB
 		if (gigachatClient) {
-			await vectorStore.addChunks(gigachatClient, chunks);
+			console.log('Adding chunks to VectorStore...');
+			try {
+				await vectorStore.addChunks(gigachatClient, chunks);
+				console.log('Chunks added to VectorStore');
+			} catch (vsError) {
+				console.error('VectorStore Error:', vsError.message);				// Не прерываем процесс, если не удалось только векторизовать
+				// Но уведомляем пользователя через детали
+			}
+		} else {
+			console.warn('GigaChat client not initialized, skipping vectorization');
 		}
-
 		// 5. Сохранение метаданных в MySQL
+		console.log('Saving metadata to MySQL...');
 		const sectionList = sections.map((s, index) => ({ id: `${pdfId}_${index}`, title: s.title }));
 		await dbService.savePdfMetadata(pdfId, themeId, file.originalname, sectionList);
-
+		console.log('Metadata saved successfully');
 		res.json({
 			pdfId,
 			filename: file.originalname,

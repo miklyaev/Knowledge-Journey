@@ -153,14 +153,16 @@ const KnowledgeJourney = () => {
 				method: 'POST',
 				body: formData
 			});
-			if (!response.ok) throw new Error('Failed to upload PDF');
 			const data = await response.json();
+			if (!response.ok) {
+				throw new Error(data.details || data.error || 'Failed to upload PDF');
+			}
 			setPdfId(data.pdfId);
 			setSections(data.sections);
 			alert('PDF успешно обработан и проиндексирован!');
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error applying PDF:', error);
-			alert('Ошибка при обработке PDF');
+			alert(`Ошибка: ${error.message}`);
 		} finally {
 			setIsProcessing(false);
 		}

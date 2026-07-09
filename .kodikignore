@@ -24,7 +24,6 @@ package-lock.json
 *.ico
 *.mp4
 *.mp3
-*.pdf
 *.zip
 *.tar.gz
 

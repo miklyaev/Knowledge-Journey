@@ -4,9 +4,8 @@ import { getEmbedding } from './embeddings.js';
 class VectorStore {
     constructor() {
         this.client = new ChromaClient({
-            path: process.env.CHROMA_URL || 'http://chromadb:8000'
-        });
-        this.collection = null;
+            path: process.env.CHROMA_URL || 'http://127.0.0.1:8000'
+        }); this.collection = null;
     }
 
     async init() {
@@ -16,11 +15,12 @@ class VectorStore {
                 metadata: { "hnsw:space": "cosine" }
             });
             console.log('ChromaDB collection initialized');
+            return true;
         } catch (error) {
-            console.error('Failed to initialize ChromaDB collection:', error);
+            console.error('Failed to initialize ChromaDB collection:', error.message);
+            throw new Error(`ChromaDB недоступна: ${error.message}`);
         }
     }
-
     /**
      * Добавляет чанки в векторное хранилище.
      * @param {object} gigachatClient Клиент GigaChat для эмбеддингов
