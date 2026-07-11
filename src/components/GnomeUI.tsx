@@ -15,23 +15,35 @@ function cn(...inputs: ClassValue[]) {
 interface WindowProps {
 	title: string;
 	children: React.ReactNode;
+	hideSidebar?: boolean;
+	onClose?: () => void;
 }
 
-export const GnomeWindow: React.FC<WindowProps> = ({ title, children }) => {
+export const GnomeWindow: React.FC<WindowProps> = ({ title, children, hideSidebar, onClose }) => {
 	return (
 		<div className="flex items-start justify-center gap-4 w-full max-w-7xl mx-auto animate-in fade-in zoom-in duration-300">
 			{/* Основное окно */}
-			<div className="gnome-window flex-grow flex flex-col max-h-[85vh]">
+			<div className="gnome-window flex-grow flex flex-col max-h-[85vh] relative">
 				<div className="gnome-header shrink-0">
 					<div className="flex gap-2 w-20">
 						<div className="w-3 h-3 rounded-full bg-[#ff5f56] shadow-inner" />
 						<div className="w-3 h-3 rounded-full bg-[#ffbd2e] shadow-inner" />
 						<div className="w-3 h-3 rounded-full bg-[#27c93f] shadow-inner" />
 					</div>
-					<span className="text-2xl font-semibold text-gray-600 truncate px-2">
+					<span className="text-lg font-semibold text-gray-600 truncate px-2">
 						{title}
 					</span>
-					<div className="w-20" />
+					{onClose ? (
+						<button
+							onClick={onClose}
+							className="flex w-20 justify-end text-gray-400 hover:text-gray-600 transition-colors"
+							title="Закрыть"
+						>
+							✕
+						</button>
+					) : (
+						<div className="w-20" />
+					)}
 				</div>
 				<div className="gnome-content bg-white overflow-y-auto flex-grow">
 					{children}
@@ -39,6 +51,7 @@ export const GnomeWindow: React.FC<WindowProps> = ({ title, children }) => {
 			</div>
 
 			{/* Отдельный блок справа */}
+			{!hideSidebar && (
 			<aside className="w-64 bg-[#ebebeb]/90 backdrop-blur-md rounded-gnome shadow-gnome border border-gray-400/30 p-4 max-h-[85vh] overflow-y-auto shrink-0">
 				<div className="space-y-6">
 					<div>
@@ -61,6 +74,7 @@ export const GnomeWindow: React.FC<WindowProps> = ({ title, children }) => {
 					</div>
 				</div>
 			</aside>
+			)}
 		</div>
 	);
 };

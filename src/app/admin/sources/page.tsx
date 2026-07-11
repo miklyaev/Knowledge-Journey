@@ -165,8 +165,8 @@ const AdminSourcesPage = () => {
         <main className="h-screen w-screen overflow-hidden flex flex-col bg-[#e8e8e7]">
             <TopBar />
             <div className="flex-grow flex flex-col items-center justify-start p-4 mt-16 gap-8 w-full max-w-4xl mx-auto overflow-y-auto">
-                <GnomeWindow title="Настройка привязки к источнику">
-                    <div className="p-8 space-y-8">
+                <GnomeWindow title="Настройка привязки к источнику" hideSidebar onClose={() => window.location.href = '/knowledgeJourney'}>
+                    <div className="p-4 space-y-8">
                         <div className="space-y-4">
                             <h3 className="text-lg font-bold text-gray-700 flex items-center gap-2">
                                 <FileText className="text-ubuntu-orange" />
@@ -198,7 +198,7 @@ const AdminSourcesPage = () => {
                                         />
                                         <button
                                             onClick={handleBrowsePDF}
-                                            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-bold transition-colors flex items-center gap-2"
+                                            className="w-[110px] px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 justify-center"
                                         >
                                             <Search size={16} />
                                             Обзор
@@ -206,10 +206,10 @@ const AdminSourcesPage = () => {
                                         <button
                                             onClick={handleApplyPDF}
                                             disabled={(!pdfPath && !(window as any)._adminSelectedPdfFile) || isProcessing || selectedTopicId === "none"}
-                                            className="px-6 py-2 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-md"
+                                            className="px-4 py-2 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-md w-[110px] justify-center"
                                         >
                                             {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
-                                            {isProcessing ? 'Обработка...' : 'Применить'}
+                                            {isProcessing ? '...' : 'Применить'}
                                         </button>
                                     </div>
                                 </div>
