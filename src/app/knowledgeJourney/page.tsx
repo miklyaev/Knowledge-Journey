@@ -58,6 +58,41 @@ const KnowledgeJourney = () => {
 		};
 		fetchThemes();
 	}, []);
+
+	// Автоматическая загрузка RAG данных при смене темы
+	useEffect(() => {
+		const fetchRagData = async () => {
+			if (selectedTopicId === 'none' || !isSourceEnabled) {
+				setPdfId(null);
+				setSections([]);
+				setSelectedSection(null);
+				return;
+			}
+
+			setIsProcessing(true);
+			const baseUrl = getPublicApiBaseUrl();
+			try {
+				const response = await fetch(`${baseUrl}/api/pdf/by-theme/${selectedTopicId}`);
+				if (response.ok) {
+					const data = await response.json();
+					setPdfId(data.id);
+					setSections(data.sections || []);
+					setSelectedSection(null);
+				} else {
+					setPdfId(null);
+					setSections([]);
+					setSelectedSection(null);
+				}
+			} catch (error) {
+				console.error('Error fetching RAG data:', error);
+			} finally {
+				setIsProcessing(false);
+			}
+		};
+
+		fetchRagData();
+	}, [selectedTopicId, isSourceEnabled]);
+
 	const handleJourneyGenerated = (data: any[]) => {
 		setJourney(data);
 		setCurrentStep(0);
@@ -117,56 +152,8 @@ const KnowledgeJourney = () => {
 		window.location.href = '/';
 	};
 
-	const handleBrowsePDF = async () => {
-		try {
-			// @ts-ignore
-			const [fileHandle] = await window.showOpenFilePicker({
-				types: [{ description: 'PDF Files', accept: { 'application/pdf': ['.pdf'] } }],
-			});
-			const file = await fileHandle.getFile();
-			setPdfPath(file.name);
-			// В реальном приложении здесь мы бы сохранили file объект для загрузки
-			// Для упрощения в данном контексте будем использовать FormData при нажатии "Применить"
-			(window as any)._selectedPdfFile = file;
-		} catch (err) {
-			console.error('Error picking file:', err);
-		}
-	};
+	const renderStep = () => {
 
-	const handleApplyPDF = async () => {
-		if (!pdfPath && !(window as any)._selectedPdfFile) return;
-
-		setIsProcessing(true);
-		const baseUrl = getPublicApiBaseUrl();
-		const formData = new FormData();
-
-		if ((window as any)._selectedPdfFile) {
-			formData.append('pdf', (window as any)._selectedPdfFile);
-		} else {
-			// Если введен путь текстом (для Linux/сервера)
-			formData.append('path', pdfPath);
-		}
-		formData.append('themeId', selectedTopicId);
-
-		try {
-			const response = await fetch(`${baseUrl}/api/pdf/upload`, {
-				method: 'POST',
-				body: formData
-			});
-			const data = await response.json();
-			if (!response.ok) {
-				throw new Error(data.details || data.error || 'Failed to upload PDF');
-			}
-			setPdfId(data.pdfId);
-			setSections(data.sections);
-			alert('PDF успешно обработан и проиндексирован!');
-		} catch (error: any) {
-			console.error('Error applying PDF:', error);
-			alert(`Ошибка: ${error.message}`);
-		} finally {
-			setIsProcessing(false);
-		}
-	}; const renderStep = () => {
 		if (!journey) return null;
 		const step = journey[currentStep];
 
@@ -260,31 +247,12 @@ const KnowledgeJourney = () => {
 
 											{isSourceEnabled && (
 												<div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-													<div className="flex gap-2">
-														<input
-															type="text"
-															value={pdfPath}
-															onChange={(e) => setPdfPath(e.target.value)}
-															placeholder="Путь до PDF или выберите файл"
-															className="flex-1 p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ubuntu-orange outline-none"
-														/>
-														<button
-															onClick={handleBrowsePDF}
-															className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-colors"
-														>
-															Обзор
-														</button>
-														<button
-															onClick={handleApplyPDF}
-															disabled={(!pdfPath && !(window as any)._selectedPdfFile) || isProcessing}
-															className="px-4 py-2 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-lg text-xs font-bold disabled:bg-gray-300 transition-all flex items-center gap-2"
-														>
-															{isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-															{isProcessing ? 'Обработка...' : 'Применить'}
-														</button>
-													</div>
-
-													{sections.length > 0 && (
+													{isProcessing ? (
+														<div className="flex items-center justify-center py-2 gap-2 text-sm text-gray-500">
+															<Loader2 className="w-4 h-4 animate-spin text-ubuntu-orange" />
+															Загрузка источника...
+														</div>
+													) : sections.length > 0 ? (
 														<select
 															value={selectedSection || ''}
 															onChange={(e) => setSelectedSection(e.target.value)}
@@ -293,9 +261,14 @@ const KnowledgeJourney = () => {
 															<option value="">Все разделы</option>
 															{sections.map(s => <option key={s.id} value={s.title}>{s.title}</option>)}
 														</select>
+													) : (
+														<div className="text-xs text-red-500 bg-red-50 p-2 rounded border border-red-100">
+															Для этой темы источник не настроен в админке.
+														</div>
 													)}
 												</div>
 											)}
+
 										</div>
 									)}
 								</div>

@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
-import { User, Users, LogOut, ShieldCheck, FileBarChart2 } from "lucide-react";
+import { User, Users, LogOut, ShieldCheck, FileBarChart2, Settings } from "lucide-react";
+
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -314,7 +315,25 @@ export const TopBar: React.FC = () => {
 					>
 						<span className="font-medium opacity-90">Журнал успехов</span>
 					</button>
+
+					<div className="relative group">
+						<button
+							className="hover:bg-white/10 px-3 py-1 rounded cursor-default transition-colors flex items-center gap-2"
+						>
+							<span className="font-medium opacity-90">Настройка</span>
+						</button>
+						<div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 hidden group-hover:block z-50">
+							<Link
+								href="/admin/sources"
+								className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+							>
+								<Settings size={14} />
+								Привязка к источнику
+							</Link>
+						</div>
+					</div>
 				</div>
+
 				<div className="absolute left-1/2 -translate-x-1/2 flex items-center h-full">
 					<span className="text-xs font-bold">8 мая 15:40</span>
 				</div>

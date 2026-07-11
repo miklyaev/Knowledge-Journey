@@ -54,7 +54,24 @@ app.use((req, res, next) => {
 });
 
 // Эндпоинты для авторизации
+app.post('/api/admin/login', async (req, res) => {
+	try {
+		const { login, password } = req.body;
+		const adminLogin = process.env.ADMIN_LOGIN || 'admin';
+		const adminPass = process.env.ADMIN_PASSWORD || 'admin';
+
+		if (login === adminLogin && password === adminPass) {
+			return res.json({ success: true });
+		} else {
+			return res.status(401).json({ error: 'Неверный логин или пароль администратора' });
+		}
+	} catch (error) {
+		res.status(500).json({ error: 'Ошибка сервера' });
+	}
+});
+
 app.post('/api/auth', async (req, res) => {
+
 	try {
 		const { nickname, password, description } = req.body;
 
@@ -510,6 +527,22 @@ app.get('/api/pdf/sections/:pdfId', async (req, res) => {
 		res.status(500).json({ error: 'Ошибка при получении разделов' });
 	}
 });
+
+// Эндпоинт для получения PDF по теме
+app.get('/api/pdf/by-theme/:themeId', async (req, res) => {
+	try {
+		const { themeId } = req.params;
+		const pdfData = await dbService.getPdfByThemeId(themeId);
+		if (!pdfData) {
+			return res.status(404).json({ error: 'Привязка к источнику не найдена для этой темы' });
+		}
+		res.json(pdfData);
+	} catch (error) {
+		console.error('Get PDF by Theme Error:', error);
+		res.status(500).json({ error: 'Ошибка при получении данных PDF' });
+	}
+});
+
 
 // Эндпоинт для поиска в базе знаний (RAG retrieval)
 app.post('/api/rag/retrieve', async (req, res) => {

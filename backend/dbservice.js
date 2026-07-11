@@ -239,4 +239,28 @@ class DatabaseService {
       return null;
     }
   }
+
+  // Method to get PDF by theme ID
+  async getPdfByThemeId(themeId) {
+    try {
+      const [rows] = await this.pool.query(
+        'SELECT * FROM t_pdfs WHERE theme_id = ? ORDER BY upload_date DESC LIMIT 1',
+        [themeId]
+      );
+      if (rows.length > 0) {
+        const row = rows[0];
+        return {
+          ...row,
+          sections: typeof row.sections_json === 'string'
+            ? JSON.parse(row.sections_json)
+            : row.sections_json
+        };
+      }
+      return null;
+    } catch (err) {
+      console.error('Database Error [getPdfByThemeId]:', err.message);
+      return null;
+    }
+  }
+
 } export default new DatabaseService();
