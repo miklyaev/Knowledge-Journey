@@ -1,35 +1,28 @@
 /**
- * Модуль для получения эмбеддингов через GigaChat API.
- */
-
-/**
- * Получает эмбеддинг для текста.
- * @param {object} gigachatClient Инициализированный клиент GigaChat
- * @param {string} text Текст для векторизации
- * @returns {Promise<Array<number>>} Вектор эмбеддинга
+ * Получает эмбеддинг для текста через GigaChat SDK.
+ * Использует массив [text] для предотвращения ошибок JSON в API.
  */
 export async function getEmbedding(gigachatClient, text) {
-    if (!gigachatClient) {
-        throw new Error('GigaChat client is not initialized');
-    }
+    if (!gigachatClient) return null;
 
     try {
-        // В SDK GigaChat метод для эмбеддингов обычно называется embeddings
-        // Если SDK не поддерживает, придется делать прямой fetch запрос к API
+        const cleanText = text.replace(/[\u0000-\u001F\u007F-\u009F]/g, " ").trim();
+        if (!cleanText) return null;
+
+        // Используем метод SDK, но гарантируем, что input - это массив [string]
         const response = await gigachatClient.embeddings({
             model: 'Embeddings',
-            input: [text]
+            input: [cleanText]
         });
 
-        return response.data[0].embedding;
+        if (response && response.data && response.data[0]) {
+            return response.data[0].embedding;
+        }
+
+        return null;
     } catch (error) {
-        console.error('Error getting embedding from GigaChat:', error);
-        // Fallback: если API не поддерживает или ошибка, возвращаем нулевой вектор (для тестов)
-        // В реальном приложении здесь должен быть надежный fallback
-        return new Array(1024).fill(0);
+        console.error('❌ Error in getEmbedding:', error.message);
+        return null;
     }
 }
 
-// module.exports = {
-//     getEmbedding
-// };
