@@ -1,6 +1,9 @@
 import { ChromaClient } from 'chromadb';
 import { getEmbedding } from './embeddings.js';
 
+// Глобальный инстанс векторного хранилища
+let vectorStoreInstance = null;
+
 class VectorStore {
     constructor() {
         const chromaUrl = process.env.CHROMA_URL || 'http://127.0.0.1:8000';
@@ -21,7 +24,6 @@ class VectorStore {
         this.collection = null;
     }
 
-
     async init() {
         try {
             // Явно указываем пустую функцию эмбеддингов, так как мы передаем свои векторы от GigaChat
@@ -33,11 +35,34 @@ class VectorStore {
             console.log('ChromaDB collection initialized');
             return true;
         } catch (error) {
-
             console.error('Failed to initialize ChromaDB collection:', error.message);
             throw new Error(`ChromaDB недоступна: ${error.message}`);
         }
     }
+
+    /**
+     * Инициализирует векторное хранилище при запуске сервера
+     */
+    static async initialize() {
+        if (!vectorStoreInstance) {
+            vectorStoreInstance = new VectorStore();
+        }
+        try {
+            await vectorStoreInstance.init();
+            return vectorStoreInstance;
+        } catch (error) {
+            console.warn('⚠️ VectorStore initialization failed:', error.message);
+            return null;
+        }
+    }
+
+    /**
+     * Получает инстанс векторного хранилища
+     */
+    static getInstance() {
+        return vectorStoreInstance;
+    }
+
     /**
      * Добавляет чанки в векторное хранилище.
      * @param {object} gigachatClient Клиент GigaChat для эмбеддингов
@@ -46,30 +71,53 @@ class VectorStore {
     async addChunks(gigachatClient, chunks) {
         if (!this.collection) await this.init();
 
+        const totalChunks = Array.isArray(chunks) ? chunks.length : 0;
+        if (totalChunks === 0) {
+            console.error('❌ Нет валидных чанков для добавления в ChromaDB: после парсинга/чанкинга список пуст');
+            return { added: 0, skipped: 0, skippedEmptyText: 0, total: 0 };
+        }
+
         const ids = [];
         const embeddings = [];
         const metadatas = [];
         const documents = [];
 
-        for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i];
-            const embedding = await getEmbedding(gigachatClient, chunk.text);
+        let skippedCount = 0;
+        let skippedEmptyText = 0;
 
-            // Проверяем, что эмбеддинг не нулевой
-            const isZeroEmbedding = !embedding || embedding.every(v => v === 0);
-            
-            if (!isZeroEmbedding) {
+        for (let i = 0; i < totalChunks; i++) {
+            const chunk = chunks[i];
+            const chunkText = typeof chunk?.text === 'string' ? chunk.text.trim() : '';
+
+            if (!chunkText) {
+                skippedCount++;
+                skippedEmptyText++;
+                console.warn(`⚠️ Пропускаем чанк ${i}: пустой текст после очистки`);
+                continue;
+            }
+
+            // Добавляем небольшую задержку (100мс), чтобы не спамить API Сбера
+            // Это помогает избежать ECONNRESET при массовой загрузке
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            const embedding = await getEmbedding(gigachatClient, chunkText);
+
+            // Проверяем, что эмбеддинг является массивом и не пустой
+            const isValidEmbedding = Array.isArray(embedding) && embedding.length > 0;
+
+            if (isValidEmbedding) {
                 // Гарантируем уникальный и строковый ID
                 const pdfId = chunk.metadata.pdfId || 'unknown_doc';
                 const chunkIndex = chunk.metadata.chunkIndex ?? i;
-                const id = `${pdfId}_${chunkIndex}_${Date.now()}`;
+                const id = `${pdfId}_${chunkIndex}_${Date.now()}_${i}`;
 
                 ids.push(id);
                 embeddings.push(embedding);
                 metadatas.push(chunk.metadata);
-                documents.push(chunk.text);
+                documents.push(chunkText);
             } else {
-                console.warn(`⚠️ Пропускаем чанк ${i}: не удалось получить валидный эмбеддинг от GigaChat`);
+                skippedCount++;
+                console.warn(`⚠️ Пропускаем чанк ${i}: не удалось получить валидный эмбеддинг от GigaChat. Текст чанка: "${chunkText.substring(0, 50)}..."`);
             }
         }
 
@@ -80,12 +128,18 @@ class VectorStore {
                 metadatas,
                 documents
             });
-            console.log(`✅ Успешно добавлено ${ids.length} чанков в ChromaDB`);
+            console.log(`✅ Успешно добавлено ${ids.length} чанков в ChromaDB (пропущено: ${skippedCount}, пустых: ${skippedEmptyText})`);
         } else {
-            console.error('❌ Нет валидных чанков для добавления в ChromaDB');
+            console.error(`❌ Нет валидных чанков для добавления в ChromaDB (всего: ${totalChunks}, пустых: ${skippedEmptyText}, с ошибкой эмбеддинга: ${skippedCount - skippedEmptyText})`);
         }
-    }
 
+        return {
+            added: ids.length,
+            skipped: skippedCount,
+            skippedEmptyText,
+            total: totalChunks
+        };
+    }
 
     /**
      * Ищет релевантные чанки.
@@ -123,5 +177,13 @@ class VectorStore {
     }
 }
 
-const vectorStoreInstance = new VectorStore();
-export default vectorStoreInstance;
+const initializeVectorStore = async () => {
+    return await VectorStore.initialize();
+};
+
+const getVectorStoreInstance = () => {
+    return VectorStore.getInstance();
+};
+
+export { initializeVectorStore, getVectorStoreInstance };
+export default new VectorStore();

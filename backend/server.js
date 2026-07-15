@@ -12,7 +12,7 @@ import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import { parsePDF, extractSections } from './rag/pdfParser.js';
 import { chunkBySection } from './rag/chunker.js';
-import vectorStore from './rag/vectorStore.js';
+import { initializeVectorStore, getVectorStoreInstance } from './rag/vectorStore.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,7 +75,7 @@ app.post('/api/auth', async (req, res) => {
 	try {
 		const { nickname, password, description } = req.body;
 
-		if (!nickname || /^\d/.test(nickname) || /\s/.test(nickname)) {
+		if (!nickname || /^\\d/.test(nickname) || /\\s/.test(nickname)) {
 			return res.status(400).json({ error: 'Недопустимый никнейм' });
 		}
 
@@ -180,6 +180,19 @@ function initializeGigaChat() {
 // Инициализируем клиент при старте сервера
 gigachatClient = initializeGigaChat();
 
+// Инициализация векторного хранилища при старте сервера
+const initializeVectorStoreOnStart = async () => {
+	try {
+		const store = await initializeVectorStore();
+		if (store) {
+			console.log('✅ VectorStore initialized successfully');
+		} else {
+			console.warn('⚠️ VectorStore initialization failed - RAG features may not work');
+		}
+	} catch (error) {
+		console.warn('⚠️ VectorStore initialization error:', error.message);
+	}
+};
 
 // Функция для логирования запросов к нейросетям в базу данных
 const logRequest = async (aiProvider, prompt, referrer) => {
@@ -209,19 +222,22 @@ app.post('/api/gigachat/generate', async (req, res) => {
 		// RAG: Получение контекста
 		if (pdfId && gigachatClient) {
 			try {
-				const chunks = await vectorStore.searchChunks(gigachatClient, prompt, { pdfId, sectionTitle: selectedSection, themeId });
-				if (chunks && chunks.length > 0) {
-					const context = chunks.map(c => c.text).join('\n---\n');
-					systemPrompt += `\n\nКонтекст из базы знаний:\n---\n${context}\n---\nИспользуй этот контекст для ответа на вопрос.`;
+				const vectorStoreInstance = getVectorStoreInstance();
+				if (vectorStoreInstance) {
+					const chunks = await vectorStoreInstance.searchChunks(gigachatClient, prompt, { pdfId, sectionTitle: selectedSection, themeId });
+					if (chunks && chunks.length > 0) {
+						const context = chunks.map(c => c.text).join('\\n---\\n');
+						systemPrompt += `\\n\\nКонтекст из базы знаний:\\n---\\n${context}\\n---\\nИспользуй этот контекст для ответа на вопрос.`;
+					}
 				}
 			} catch (ragError) {
 				console.error('RAG Error in GigaChat generate:', ragError);
 			}
 		}
 		if (topicPrompt) {
-			const lines = systemPrompt.split('\n');
+			const lines = systemPrompt.split('\\n');
 			lines[0] = topicPrompt;
-			systemPrompt = lines.join('\n');
+			systemPrompt = lines.join('\\n');
 		}
 
 		if (!gigachatClient) {
@@ -285,19 +301,22 @@ app.post('/api/yandexgpt/generate', async (req, res) => {
 		// RAG: Получение контекста
 		if (pdfId && gigachatClient) {
 			try {
-				const chunks = await vectorStore.searchChunks(gigachatClient, prompt, { pdfId, sectionTitle: selectedSection, themeId });
-				if (chunks && chunks.length > 0) {
-					const context = chunks.map(c => c.text).join('\n---\n');
-					systemPrompt += `\n\nКонтекст из базы знаний:\n---\n${context}\n---\nИспользуй этот контекст для ответа на вопрос.`;
+				const vectorStoreInstance = getVectorStoreInstance();
+				if (vectorStoreInstance) {
+					const chunks = await vectorStoreInstance.searchChunks(gigachatClient, prompt, { pdfId, sectionTitle: selectedSection, themeId });
+					if (chunks && chunks.length > 0) {
+						const context = chunks.map(c => c.text).join('\\n---\\n');
+						systemPrompt += `\\n\\nКонтекст из базы знаний:\\n---\\n${context}\\n---\\nИспользуй этот контекст для ответа на вопрос.`;
+					}
 				}
 			} catch (ragError) {
 				console.error('RAG Error in YandexGPT generate:', ragError);
 			}
 		}
 		if (topicPrompt) {
-			const lines = systemPrompt.split('\n');
+			const lines = systemPrompt.split('\\n');
 			lines[0] = topicPrompt;
-			systemPrompt = lines.join('\n');
+			systemPrompt = lines.join('\\n');
 		}
 
 		const { YANDEXGPT_API_KEY, YANDEXGPT_FOLDER_ID } = process.env;
@@ -384,7 +403,7 @@ app.post('/api/ai/evaluate', async (req, res) => {
 4. Ответ должен быть в формате JSON: {"score": число, "feedback": "краткое пояснение на русском языке"}.
 5. Не пиши ничего, кроме JSON.`;
 
-		const prompt = `Вопрос: ${question}\nОтвет студента: ${answer}`;
+		const prompt = `Вопрос: ${question}\\nОтвет студента: ${answer}`;
 
 		let content = "";
 
@@ -422,7 +441,7 @@ app.post('/api/ai/evaluate', async (req, res) => {
 		}
 
 		// Парсим JSON из ответа ИИ
-		const jsonMatch = content.match(/\{[\s\S]*\}/);
+		const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);
 		if (jsonMatch) {
 			try {
 				const result = JSON.parse(jsonMatch[0]);
@@ -484,14 +503,25 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 		const chunks = chunkBySection(sections, pdfId, themeId);
 		console.log('Total chunks created:', chunks.length);
 
+		if (chunks.length === 0) {
+			console.warn('⚠️ После парсинга PDF не удалось получить текстовые чанки. Возможная причина: PDF состоит из сканов/изображений без текстового слоя.');
+		}
+
 		// 4. Векторизация и сохранение в ChromaDB
+		let vectorizationSummary = null;
 		if (gigachatClient) {
 			console.log('Adding chunks to VectorStore...');
 			try {
-				await vectorStore.addChunks(gigachatClient, chunks);
-				console.log('Chunks added to VectorStore');
+				const vectorStoreInstance = getVectorStoreInstance();
+				if (vectorStoreInstance) {
+					vectorizationSummary = await vectorStoreInstance.addChunks(gigachatClient, chunks);
+					console.log('Chunks added to VectorStore');
+				} else {
+					console.warn('VectorStore not initialized, skipping vectorization');
+				}
 			} catch (vsError) {
-				console.error('VectorStore Error:', vsError.message);				// Не прерываем процесс, если не удалось только векторизовать
+				console.error('VectorStore Error:', vsError.message);
+				// Не прерываем процесс, если не удалось только векторизовать
 				// Но уведомляем пользователя через детали
 			}
 		} else {
@@ -505,7 +535,8 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 		res.json({
 			pdfId,
 			filename: file.originalname,
-			sections: sectionList
+			sections: sectionList,
+			vectorization: vectorizationSummary
 		});
 	} catch (error) {
 		console.error('PDF Upload/Index Error:', error);
@@ -513,7 +544,7 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 	}
 });
 
-// Эндпоинт для получения разделов PDF
+// Энд��оинт для получения разделов PDF
 app.get('/api/pdf/sections/:pdfId', async (req, res) => {
 	try {
 		const { pdfId } = req.params;
@@ -553,7 +584,12 @@ app.post('/api/rag/retrieve', async (req, res) => {
 			return res.status(500).json({ error: 'GigaChat клиент не инициализирован' });
 		}
 
-		const chunks = await vectorStore.searchChunks(gigachatClient, query, { themeId, pdfId, sectionTitle }, topK);
+		const vectorStoreInstance = getVectorStoreInstance();
+		if (!vectorStoreInstance) {
+			return res.status(500).json({ error: 'VectorStore не инициализирован' });
+		}
+
+		const chunks = await vectorStoreInstance.searchChunks(gigachatClient, query, { themeId, pdfId, sectionTitle }, topK);
 		res.json({ chunks });
 	} catch (error) {
 		console.error('RAG Retrieval Error:', error);
@@ -595,7 +631,8 @@ app.get('/api/data', (req, res) => {
 app.get('/api/health', (req, res) => {
 	res.json({
 		status: 'ok',
-		gigachat: gigachatClient ? 'initialized' : 'not_initialized'
+		gigachat: gigachatClient ? 'initialized' : 'not_initialized',
+		vectorstore: getVectorStoreInstance() ? 'initialized' : 'not_initialized'
 	});
 });
 
@@ -619,9 +656,14 @@ dbService.connect()
 		console.error(errorMsg);
 		// Завершаем работу, так как БД теперь обязательна
 		process.exit(1);
-	});// Graceful shutdown handling
+	});
+
+// Инициализируем векторное хранилище после подключения к БД
+initializeVectorStoreOnStart();
+
+// Graceful shutdown handling
 process.on('SIGINT', async () => {
-	console.log('\nShutting down gracefully...');
+	console.log('\\nShutting down gracefully...');
 	await dbService.disconnect();
 	process.exit(0);
 });
@@ -633,5 +675,11 @@ app.listen(PORT, () => {
 		console.log('GigaChat client initialized successfully');
 	} else {
 		console.warn('GigaChat client not initialized - check environment variables');
+	}
+	const vectorStoreInstance = getVectorStoreInstance();
+	if (vectorStoreInstance) {
+		console.log('VectorStore initialized successfully');
+	} else {
+		console.warn('VectorStore not initialized - RAG features may not work');
 	}
 });

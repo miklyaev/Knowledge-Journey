@@ -43,7 +43,7 @@ async function testRagFlow() {
     try {
         // 3. Чанкинг
         console.log("📦 Шаг 1: Чанкинг...");
-        const chunks = chunkBySection(testSections, { themeId: 'test-theme', pdfId: 'test-pdf' });
+        const chunks = chunkBySection(testSections, 'test-pdf', 'test-theme');
         console.log(`   - Создано чанков: ${chunks.length}`);
         
         // 4. Проверка ChromaDB (через туннель)
