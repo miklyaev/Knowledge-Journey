@@ -2,17 +2,16 @@ const DEFAULT_API_BASE = "http://localhost:3031";
 
 /** Базовый URL Express API без завершающего слэша. Задаётся в `.env`: `NEXT_PUBLIC_API_BASE_URL`. */
 export function getPublicApiBaseUrl(): string {
-	// 1. Приоритет переменной окружения (работает и на сервере, и на клиенте при сборке)
-	const envBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-	if (envBaseUrl) {
-		return envBaseUrl.replace(/\/+$/, "");
+	// Серверная сторона (Next.js API Routes): используем переменную окружения или дефолт
+	if (typeof window === "undefined") {
+		return (process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE).replace(/\/+$/, "");
 	}
 
-	// 2. Если мы в браузере на localhost и переменная не задана, используем дефолтный порт бэкенда
-	if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+	// Клиент (браузер) на localhost: прямой доступ к бэкенду для разработки
+	if (window.location.hostname === "localhost") {
 		return DEFAULT_API_BASE;
 	}
 
-	// 3. Дефолтное значение
-	return DEFAULT_API_BASE;
+	// Клиент (браузер) на проде: относительный URL → same-origin HTTPS → Next.js proxy → бэкенд
+	return "";
 }

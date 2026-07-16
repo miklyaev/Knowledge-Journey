@@ -1,5 +1,19 @@
 # Dev Notes
 
+## 2026-07-16 — Исправление Mixed Content на VDS (HTTPS/HTTP)
+
+**Область:** Frontend, Infrastructure, Networking
+
+**Что изменилось:**
+- **`src/lib/apiBase.ts`**: Переработана логика `getPublicApiBaseUrl()`:
+  - На серверной стороне (Next.js API Routes) — использует `NEXT_PUBLIC_API_BASE_URL` или дефолт `http://localhost:3031`.
+  - В браузере на `localhost` — прямой доступ к бэкенду (`http://localhost:3031`) для разработки.
+  - В браузере на проде — возвращает `""` (относительный URL = same-origin), чтобы запросы шли через HTTPS на тот же домен.
+- **`next.config.mjs`**: Добавлены rewrite-правила для `/api/pdf/:path*` и `/api/admin/:path*`, чтобы клиентские запросы к этим эндпоинтам проксировались через Next.js-сервер внутри Docker-сети.
+
+**Зачем / контекст:**
+На VDS страница загружается по HTTPS, но клиентские компоненты (`knowledgeJourney`, `admin/sources`, `successJournal`, `TimerFreeResponse`) вызывали `getPublicApiBaseUrl()`, которая возвращала `http://backend:3031`. Браузер блокировал HTTP-запросы с HTTPS-страницы (Mixed Content). Теперь все клиентские запросы идут через same-origin → Next.js proxy → бэкенд.
+
 ## 2026-07-15 — Исправление RAG и векторизации GigaChat
 
 **Область:** Backend, RAG, AI

@@ -1,4 +1,4 @@
-const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL).replace(
+const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3031").replace(
 	/\/+$/,
 	"",
 );
@@ -18,6 +18,14 @@ const nextConfig = {
 			{
 				source: "/api/health",
 				destination: `${apiBase}/api/health`,
+			},
+			{
+				source: "/api/pdf/:path*",
+				destination: `${apiBase}/api/pdf/:path*`,
+			},
+			{
+				source: "/api/admin/:path*",
+				destination: `${apiBase}/api/admin/:path*`,
 			},
 		];
 	},
