@@ -11,27 +11,27 @@ const require = createRequire(import.meta.url);
 dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 async function testRaw() {
-    const chromaUrl = process.env.CHROMA_URL || "http://localhost:8000";
+    const chromaUrl = process.env.CHROMA_URL;
     const url = `${chromaUrl.replace(/\/$/, "")}/api/v2/heartbeat`;
-    
+
     console.log(`🔍 Используемый URL из .env: ${chromaUrl}`);
     console.log(`🌐 Отправка прямого запроса на V2 API: ${url}`);
-    
+
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // Увеличим до 10 сек
 
-        const response = await fetch(url, { 
+        const response = await fetch(url, {
             signal: controller.signal,
             headers: {
                 'Accept': 'application/json'
             }
         });
-        
+
         clearTimeout(timeoutId);
 
         console.log(`📊 Статус: ${response.status} ${response.statusText}`);
-        
+
         if (response.status === 401 || response.status === 403) {
             console.log("❌ Ошибка авторизации! Сервер требует токен.");
             console.log("Заголовки ответа:", JSON.stringify([...response.headers]));

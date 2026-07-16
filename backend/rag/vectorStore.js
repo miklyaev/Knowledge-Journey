@@ -6,8 +6,8 @@ let vectorStoreInstance = null;
 
 class VectorStore {
     constructor() {
-        const chromaUrl = process.env.CHROMA_URL || 'http://127.0.0.1:8000';
-        
+        const chromaUrl = process.env.CHROMA_URL;// || 'http://127.0.0.1:8000';
+
         // Разбираем URL для нового формата ChromaClient (V2)
         try {
             const url = new URL(chromaUrl);
@@ -20,7 +20,7 @@ class VectorStore {
             console.warn('Invalid CHROMA_URL, falling back to default');
             this.client = new ChromaClient({ host: '127.0.0.1', port: 8000 });
         }
-        
+
         this.collection = null;
     }
 
@@ -30,7 +30,7 @@ class VectorStore {
             this.collection = await this.client.getOrCreateCollection({
                 name: 'knowledge_base',
                 metadata: { "hnsw:space": "cosine" },
-                embeddingFunction: null 
+                embeddingFunction: null
             });
             console.log('ChromaDB collection initialized');
             return true;

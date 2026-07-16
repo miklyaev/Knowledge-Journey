@@ -10,15 +10,15 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 async function testChromaConnection() {
-    const chromaUrl = process.env.CHROMA_URL || "http://localhost:8000";
+    const chromaUrl = process.env.CHROMA_URL;
     const authToken = process.env.CHROMA_AUTH_TOKEN || process.env.CHROMA_SERVER_AUTH_CREDENTIALS;
-    
+
     console.log(`🔍 Проверка подключения к ChromaDB по адресу: ${chromaUrl}`);
     if (authToken) {
         console.log("🔑 Используется токен авторизации");
     }
 
-    const client = new ChromaClient({ 
+    const client = new ChromaClient({
         path: chromaUrl,
         ...(authToken && {
             auth: {
@@ -37,7 +37,7 @@ async function testChromaConnection() {
         // 2. Получение списка коллекций
         const collections = await client.listCollections();
         console.log(`✅ Соединение установлено. Найдено коллекций: ${collections.length}`);
-        
+
         if (collections.length > 0) {
             console.log("Список коллекций:");
             collections.forEach(c => console.log(` - ${c.name}`));
