@@ -336,7 +336,7 @@ export const TopBar: React.FC = () => {
 						>
 							<span className="font-medium opacity-90">Настройка</span>
 						</button>
-						<div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 hidden group-hover:block z-50">
+						<div className="absolute left-0 top-full pt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 hidden group-hover:block z-50">
 							<Link
 								href="/admin/sources"
 								className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
