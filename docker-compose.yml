@@ -20,6 +20,8 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - app-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_password}"]
       interval: 10s
@@ -47,6 +49,8 @@ services:
       - DB_NAME=JourneyDb
       - DB_PORT=3306
       - PORT=3031
+    networks:
+      - app-network
     depends_on:
       db:
         condition: service_healthy
@@ -64,6 +68,8 @@ services:
       - "3030:3030"
     environment:
       - NEXT_PUBLIC_API_BASE_URL=http://backend:3031
+    networks:
+      - app-network
     depends_on:
       - backend
 
