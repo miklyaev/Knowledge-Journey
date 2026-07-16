@@ -58,6 +58,8 @@ services:
   frontend:
     build:
       context: .
+      args:
+        - NEXT_PUBLIC_API_BASE_URL=http://backend:3031
     restart: always
     logging:
       driver: "json-file"
