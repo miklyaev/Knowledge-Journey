@@ -240,6 +240,19 @@ class DatabaseService {
     }
   }
 
+  // Method to delete PDF metadata by theme ID
+  async deletePdfByThemeId(themeId) {
+    try {
+      const query = 'DELETE FROM t_pdfs WHERE theme_id = ?';
+      const [result] = await this.pool.query(query, [themeId]);
+      console.log(`Удалено ${result.affectedRows} записей PDF для темы "${themeId}" из MySQL`);
+      return result.affectedRows;
+    } catch (err) {
+      console.error('Database Error [deletePdfByThemeId]:', err.message);
+      return 0;
+    }
+  }
+
   // Method to get PDF by theme ID
   async getPdfByThemeId(themeId) {
     try {

@@ -142,6 +142,38 @@ class VectorStore {
     }
 
     /**
+     * Удаляет все записи по themeId из ChromaDB.
+     * @param {string} themeId ID темы
+     * @returns {{ deleted: number }}
+     */
+    async deleteByThemeId(themeId) {
+        if (!this.collection) await this.init();
+
+        try {
+            // Получаем все ID записей для данной темы
+            const getResult = await this.collection.get({
+                where: { themeId }
+            });
+
+            const ids = getResult?.ids || [];
+            if (ids.length === 0) {
+                console.log(`ℹ️ Нет записей для темы "${themeId}" в ChromaDB`);
+                return { deleted: 0 };
+            }
+
+            await this.collection.delete({
+                ids: ids
+            });
+
+            console.log(`✅ Удалено ${ids.length} записей темы "${themeId}" из ChromaDB`);
+            return { deleted: ids.length };
+        } catch (error) {
+            console.error(`❌ Ошибка удаления темы "${themeId}" из ChromaDB:`, error.message);
+            throw new Error(`Ошибка очистки ChromaDB: ${error.message}`);
+        }
+    }
+
+    /**
      * Ищет релевантные чанки.
      * @param {object} gigachatClient Клиент GigaChat для эмбеддингов
      * @param {string} query Поисковый запрос

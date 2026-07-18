@@ -3,12 +3,25 @@
 import React, { useState, useEffect } from "react";
 import { TopBar, GnomeWindow } from "@/components/GnomeUI";
 import { getPublicApiBaseUrl } from "@/lib/apiBase";
-import { Loader2, FileText, Save, Search, CheckCircle2 } from "lucide-react";
+import { Loader2, FileText, Save, Search, CheckCircle2, Trash2, Database, Brain, FileSearch } from "lucide-react";
 
 interface Topic {
     id: string;
     title: string;
 }
+
+interface ChunkStep {
+    label: string;
+    icon: React.ReactNode;
+    status: "done" | "active" | "pending";
+}
+
+const STEPS: ChunkStep[] = [
+    { label: "Парсинг PDF", icon: <FileSearch size={16} />, status: "pending" },
+    { label: "Извлечение разделов", icon: <FileText size={16} />, status: "pending" },
+    { label: "Чанкинг текста", icon: <Brain size={16} />, status: "pending" },
+    { label: "Векторизация в ChromaDB", icon: <Database size={16} />, status: "pending" },
+];
 
 const AdminSourcesPage = () => {
     const [isAuthorized, setIsAuthorized] = useState(false);
@@ -20,9 +33,11 @@ const AdminSourcesPage = () => {
     const [selectedTopicId, setSelectedTopicId] = useState("none");
     const [pdfPath, setPdfPath] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [chunkSteps, setChunkSteps] = useState<ChunkStep[]>(STEPS);
     const [sections, setSections] = useState<{ id: string, title: string }[]>([]);
     const [pdfId, setPdfId] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState("");
+    const [isClearing, setIsClearing] = useState(false);
 
     useEffect(() => {
         if (isAuthorized) {
@@ -76,6 +91,21 @@ const AdminSourcesPage = () => {
         }
     };
 
+    const animateSteps = async () => {
+        const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+        setChunkSteps(STEPS.map((s, i) => ({ ...s, status: i === 0 ? "active" as const : "pending" as const })));
+        await delay(400);
+
+        for (let i = 0; i < STEPS.length; i++) {
+            setChunkSteps(prev => prev.map((s, j) => ({
+                ...s,
+                status: j < i + 1 ? ("done" as const) : j === i + 1 ? ("active" as const) : ("pending" as const)
+            })));
+            await delay(i < STEPS.length - 1 ? 500 : 300);
+        }
+    };
+
     const handleApplyPDF = async () => {
         if (selectedTopicId === "none") {
             alert("Выберите тему");
@@ -85,6 +115,8 @@ const AdminSourcesPage = () => {
 
         setIsProcessing(true);
         setSuccessMessage("");
+        setSections([]);
+        setChunkSteps(STEPS.map((s, i) => ({ ...s, status: i === 0 ? "active" as const : "pending" as const })));
         const baseUrl = getPublicApiBaseUrl();
         const formData = new FormData();
 
@@ -107,11 +139,44 @@ const AdminSourcesPage = () => {
             setPdfId(data.pdfId);
             setSections(data.sections);
             setSuccessMessage("PDF успешно привязан к теме!");
+            animateSteps();
         } catch (error: any) {
             console.error('Error applying PDF:', error);
+            setChunkSteps(STEPS.map(s => ({ ...s, status: "pending" as const })));
             alert(`Ошибка: ${error.message}`);
         } finally {
             setIsProcessing(false);
+        }
+    };
+
+    const handleClearTheme = async () => {
+        if (selectedTopicId === "none") {
+            alert("Выберите тему");
+            return;
+        }
+        const topicName = topics.find(t => t.id === selectedTopicId)?.title || selectedTopicId;
+        if (!confirm(`Очистить все векторы и данные темы "${topicName}" из ChromaDB? Это действие необратимо.`)) return;
+
+        setIsClearing(true);
+        const baseUrl = getPublicApiBaseUrl();
+        try {
+            const response = await fetch(`${baseUrl}/api/pdf/clear-theme`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ themeId: selectedTopicId }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to clear theme');
+            }
+            setPdfId(null);
+            setSections([]);
+            setSuccessMessage(`Данные темы "${topicName}" очищены из ChromaDB и MySQL`);
+        } catch (error: any) {
+            console.error('Error clearing theme:', error);
+            alert(`Ошибка: ${error.message}`);
+        } finally {
+            setIsClearing(false);
         }
     };
 
@@ -206,15 +271,50 @@ const AdminSourcesPage = () => {
                                         <button
                                             onClick={handleApplyPDF}
                                             disabled={(!pdfPath && !(window as any)._adminSelectedPdfFile) || isProcessing || selectedTopicId === "none"}
-                                            className="px-4 py-2 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-md w-[110px] justify-center"
+                                            className="px-4 py-2 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-md w-[130px] justify-center"
                                         >
                                             {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
-                                            {isProcessing ? '...' : 'Применить'}
+                                            {isProcessing ? '...' : 'Индексировать'}
+                                        </button>
+                                        <button
+                                            onClick={handleClearTheme}
+                                            disabled={isClearing || selectedTopicId === "none"}
+                                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-md w-[130px] justify-center"
+                                        >
+                                            {isClearing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 size={16} />}
+                                            {isClearing ? '...' : 'Очистить БЗ'}
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
+                        {isProcessing && (
+                            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                                <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin text-ubuntu-orange" />
+                                    Процесс индексации
+                                </h3>
+                                <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-2">
+                                    {chunkSteps.map((step, i) => (
+                                        <div key={i} className="flex items-center gap-3 text-sm">
+                                            <div className={
+                                                step.status === "done" ? "text-green-500" :
+                                                step.status === "active" ? "text-ubuntu-orange animate-pulse" : "text-gray-300"
+                                            }>
+                                                {step.status === "done" ? <CheckCircle2 size={16} /> : step.icon}
+                                            </div>
+                                            <span className={
+                                                step.status === "done" ? "text-green-700 font-medium" :
+                                                step.status === "active" ? "text-gray-800 font-medium" : "text-gray-400"
+                                            }>
+                                                {step.label}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {successMessage && (
                             <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">

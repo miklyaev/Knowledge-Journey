@@ -575,6 +575,50 @@ app.get('/api/pdf/by-theme/:themeId', async (req, res) => {
 });
 
 
+// Эндпоинт для очистки данных темы из ChromaDB и MySQL
+app.post('/api/pdf/clear-theme', async (req, res) => {
+	try {
+		const { themeId } = req.body;
+		if (!themeId) {
+			return res.status(400).json({ error: 'themeId обязателен' });
+		}
+
+		// 1. Удаляем векторы из ChromaDB
+		const vectorStoreInstance = getVectorStoreInstance();
+		let chromaDeleted = 0;
+		if (vectorStoreInstance) {
+			try {
+				const result = await vectorStoreInstance.deleteByThemeId(themeId);
+				chromaDeleted = result.deleted;
+			} catch (vsError) {
+				console.error('ChromaDB delete error:', vsError.message);
+			}
+		} else {
+			console.warn('VectorStore не инициализирован, пропускаем очистку ChromaDB');
+		}
+
+		// 2. Удаляем метаданные из MySQL
+		const dbDeleted = await dbService.deletePdfByThemeId(themeId);
+
+		// 3. Удаляем файлы PDF из папки knowledge_base
+		const kbDir = path.join(__dirname, 'knowledge_base', themeId);
+		if (fs.existsSync(kbDir)) {
+			fs.rmSync(kbDir, { recursive: true, force: true });
+			console.log(`🗑️ Удалена папка знаний для темы "${themeId}"`);
+		}
+
+		res.json({
+			success: true,
+			message: `Тема "${themeId}" очищена`,
+			chromaDeleted,
+			dbDeleted
+		});
+	} catch (error) {
+		console.error('Clear Theme Error:', error);
+		res.status(500).json({ error: 'Ошибка при очистке темы', details: error.message });
+	}
+});
+
 // Эндпоинт для поиска в базе знаний (RAG retrieval)
 app.post('/api/rag/retrieve', async (req, res) => {
 	try {
