@@ -40,7 +40,8 @@ const AdminSourcesPage = () => {
     const [isClearing, setIsClearing] = useState(false);
     const [processPdf, setProcessPdf] = useState(false);
     const [pagesToRemove, setPagesToRemove] = useState("");
-    const [sectionRegex, setSectionRegex] = useState("^(глава\\s+\\d+|раздел\\s+\\d+|часть\\s+\\d+|§\\s*\\d+|\\d+\\.\\s+[А-ЯA-ZЁ]|\\d+\\.\\d+\\s+[А-ЯA-ZЁ])");
+    const DEFAULT_SECTION_REGEX = "^(глава\\s+\\d+|раздел\\s+\\d+|часть\\s+\\d+|§\\s*\\d+|\\d+\\.\\s+[А-ЯA-ZЁ]|\\d+\\.\\d+\\s+[А-ЯA-ZЁ])";
+    const [sectionRegex, setSectionRegex] = useState(DEFAULT_SECTION_REGEX);
     const [cleanedSections, setCleanedSections] = useState<{ id: string, title: string }[]>([]);
     const [isTesting, setIsTesting] = useState(false);
     const [testResults, setTestResults] = useState<{ sectionCount: number, sections: { id: string, title: string }[] } | null>(null);
@@ -376,6 +377,14 @@ const AdminSourcesPage = () => {
                                                 onChange={(e) => { setSectionRegex(e.target.value); setTestResults(null); setTestError(""); }}
                                                 className="flex-1 p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ubuntu-orange outline-none font-mono"
                                             />
+                                            <button
+                                                onClick={() => { setSectionRegex(DEFAULT_SECTION_REGEX); setTestResults(null); setTestError(""); }}
+                                                disabled={sectionRegex === DEFAULT_SECTION_REGEX}
+                                                title="Сбросить к выражению по умолчанию"
+                                                className="px-2 py-2 border border-gray-300 hover:bg-gray-100 text-gray-500 rounded-lg text-sm transition-all flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed w-[38px]"
+                                            >
+                                                ↩
+                                            </button>
                                             <button
                                                 onClick={handleTestRegex}
                                                 disabled={!sectionRegex || !(window as any)._adminSelectedPdfFile || isTesting}
