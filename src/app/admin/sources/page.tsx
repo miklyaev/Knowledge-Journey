@@ -40,7 +40,7 @@ const AdminSourcesPage = () => {
     const [isClearing, setIsClearing] = useState(false);
     const [processPdf, setProcessPdf] = useState(false);
     const [pagesToRemove, setPagesToRemove] = useState("");
-    const DEFAULT_SECTION_REGEX = "^(глава\\s+\\d+|раздел\\s+\\d+|часть\\s+\\d+|§\\s*\\d+|\\d+\\.\\s+[А-ЯA-ZЁ]|\\d+\\.\\d+\\s+[А-ЯA-ZЁ])";
+    const DEFAULT_SECTION_REGEX = "^\\d+(?:\\.\\d+)*\\.\\s+[А-ЯA-ZЁ]";
     const [sectionRegex, setSectionRegex] = useState(DEFAULT_SECTION_REGEX);
     const [cleanedSections, setCleanedSections] = useState<{ id: string, title: string }[]>([]);
     const [isTesting, setIsTesting] = useState(false);
@@ -325,24 +325,6 @@ const AdminSourcesPage = () => {
                                             Обзор
                                         </button>
                                     </div>
-                                    <div className="flex gap-2 justify-center">
-                                        <button
-                                            onClick={handleApplyPDF}
-                                            disabled={(!pdfPath && !(window as any)._adminSelectedPdfFile) || isProcessing || selectedTopicId === "none"}
-                                            className="px-4 py-2 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-md whitespace-nowrap"
-                                        >
-                                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
-                                            {isProcessing ? '...' : 'Индексировать'}
-                                        </button>
-                                        <button
-                                            onClick={handleClearTheme}
-                                            disabled={isClearing || selectedTopicId === "none"}
-                                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-md whitespace-nowrap"
-                                        >
-                                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 size={16} />}
-                                            {isClearing ? '...' : 'Очистить базу знаний'}
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -528,6 +510,24 @@ const AdminSourcesPage = () => {
                                 </p>
                             </div>
                         )}
+                        <div className="flex gap-2 justify-center">
+                            <button
+                                onClick={handleApplyPDF}
+                                disabled={(!pdfPath && !(window as any)._adminSelectedPdfFile) || isProcessing || selectedTopicId === "none"}
+                                className="px-4 py-2 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-md whitespace-nowrap"
+                            >
+                                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
+                                {isProcessing ? '...' : 'Индексировать'}
+                            </button>
+                            <button
+                                onClick={handleClearTheme}
+                                disabled={isClearing || selectedTopicId === "none"}
+                                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-md whitespace-nowrap"
+                            >
+                                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 size={16} />}
+                                {isClearing ? '...' : 'Очистить базу знаний'}
+                            </button>
+                        </div>
                     </div>
                 </GnomeWindow>
             </div>
