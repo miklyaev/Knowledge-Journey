@@ -529,21 +529,22 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 		let vectorizationSummary = null;
 		if (gigachatClient) {
 			console.log('Adding chunks to VectorStore...');
-			try {
+try {
 				const vectorStoreInstance = getVectorStoreInstance();
 				if (vectorStoreInstance) {
 					vectorizationSummary = await vectorStoreInstance.addChunks(gigachatClient, chunks);
 					console.log('Chunks added to VectorStore');
 				} else {
 					console.warn('VectorStore not initialized, skipping vectorization');
+					vectorizationSummary = { error: 'ChromaDB недоступна: векторное хранилище не инициализировано', added: 0, skipped: 0, skippedEmptyText: 0, total: 0 };
 				}
 			} catch (vsError) {
 				console.error('VectorStore Error:', vsError.message);
-				// РќРµ РїСЂРµСЂС‹РІР°РµРј РїСЂРѕС†РµСЃСЃ, РµСЃР»Рё РЅРµ СѓРґР°Р»РѕСЃСЊ С‚РѕР»СЊРєРѕ РІРµРєС‚РѕСЂРёР·РѕРІР°С‚СЊ
-				// РќРѕ СѓРІРµРґРѕРјР»СЏРµРј РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ С‡РµСЂРµР· РґРµС‚Р°Р»Рё
+vectorizationSummary = { error: vsError.message, added: 0, skipped: 0, skippedEmptyText: 0, total: 0 };
 			}
-		} else {
+} else {
 			console.warn('GigaChat client not initialized, skipping vectorization');
+			vectorizationSummary = { error: 'GigaChat клиент не инициализирован, векторизация недоступна', added: 0, skipped: 0, skippedEmptyText: 0, total: 0 };
 		}
 		// 5. РЎРѕС…СЂР°РЅРµРЅРёРµ РјРµС‚Р°РґР°РЅРЅС‹С… РІ MySQL
 		console.log('Saving metadata to MySQL...');
@@ -566,7 +567,7 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 app.post('/api/pdf/test-regex', upload.single('pdf'), async (req, res) => {
 	try {
 		const file = req.file;
-		const { sectionRegex } = req.body;
+		const { sectionRegex, pagesToRemove } = req.body;
 
 		if (!file) {
 			return res.status(400).json({ error: 'Файл не загружен' });
@@ -578,22 +579,27 @@ app.post('/api/pdf/test-regex', upload.single('pdf'), async (req, res) => {
 		}
 
 		const filePath = file.path;
+		let cleanedPath = null;
 
 		try {
-			const text = await extractTextFromPdf(filePath);
-			const titles = extractSectionTitles(text, sectionRegex);
+			// Применяем ту же очистку (удаление страниц), что и в основном эндпоинте
+			cleanedPath = filePath.replace(/\.pdf$/i, '_cleaned_test.pdf');
+			const result = await cleanPdf(filePath, cleanedPath, pagesToRemove || '', sectionRegex || '');
 
 			res.json({
 				success: true,
-				sectionCount: titles.length,
-				sections: titles.map((title, index) => ({
+				sectionCount: result.sections.length,
+				sections: result.sections.map((title, index) => ({
 					id: `test_${index}`,
 					title
 				})),
-				textLength: text.length
+				textLength: result.text.length,
+				pagesRemoved: result.pdfInfo.removedPages
 			});
 		} finally {
-			fs.unlink(file.path, () => {});
+			// Удаляем временные файлы
+			try { if (cleanedPath) fs.unlinkSync(cleanedPath); } catch (_) {}
+			try { fs.unlinkSync(file.path); } catch (_) {}
 		}
 	} catch (error) {
 		console.error('PDF Test Regex Error:', error);

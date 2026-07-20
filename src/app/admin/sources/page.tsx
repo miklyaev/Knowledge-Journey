@@ -46,6 +46,7 @@ const AdminSourcesPage = () => {
     const [isTesting, setIsTesting] = useState(false);
     const [testResults, setTestResults] = useState<{ sectionCount: number, sections: { id: string, title: string }[] } | null>(null);
     const [testError, setTestError] = useState("");
+    const [chromaWarning, setChromaWarning] = useState("");
 
     useEffect(() => {
         if (isAuthorized) {
@@ -127,6 +128,7 @@ const AdminSourcesPage = () => {
         const formData = new FormData();
         formData.append('pdf', (window as any)._adminSelectedPdfFile);
         formData.append('sectionRegex', sectionRegex);
+        formData.append('pagesToRemove', pagesToRemove);
 
         try {
             const response = await fetch(`${baseUrl}/api/pdf/test-regex`, {
@@ -157,6 +159,7 @@ const AdminSourcesPage = () => {
         setSuccessMessage("");
         setSections([]);
         setCleanedSections([]);
+        setChromaWarning("");
         setChunkSteps(STEPS.map((s, i) => ({ ...s, status: i === 0 ? "active" as const : "pending" as const })));
         const baseUrl = getPublicApiBaseUrl();
         const formData = new FormData();
@@ -189,6 +192,9 @@ const AdminSourcesPage = () => {
                 setCleanedSections(data.cleanedSections);
             }
             setSuccessMessage("PDF успешно привязан к теме!");
+            if (data.vectorization?.error) {
+                setChromaWarning(data.vectorization.error);
+            }
             animateSteps();
         } catch (error: any) {
             console.error('Error applying PDF:', error);
@@ -303,7 +309,7 @@ const AdminSourcesPage = () => {
 
                                 <div className="space-y-2">
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Источник (PDF)</label>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 w-full">
                                         <input
                                             type="text"
                                             value={pdfPath}
@@ -318,10 +324,12 @@ const AdminSourcesPage = () => {
                                             <Search size={16} />
                                             Обзор
                                         </button>
+                                    </div>
+                                    <div className="flex gap-2 justify-center">
                                         <button
                                             onClick={handleApplyPDF}
                                             disabled={(!pdfPath && !(window as any)._adminSelectedPdfFile) || isProcessing || selectedTopicId === "none"}
-                                            className="px-4 py-2 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-md w-[130px] justify-center"
+                                            className="px-4 py-2 bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-md whitespace-nowrap"
                                         >
                                             {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
                                             {isProcessing ? '...' : 'Индексировать'}
@@ -329,10 +337,10 @@ const AdminSourcesPage = () => {
                                         <button
                                             onClick={handleClearTheme}
                                             disabled={isClearing || selectedTopicId === "none"}
-                                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-md w-[130px] justify-center"
+                                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-md whitespace-nowrap"
                                         >
-                                            {isClearing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 size={16} />}
-                                            {isClearing ? '...' : 'Очистить БЗ'}
+                                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 size={16} />}
+                                            {isClearing ? '...' : 'Очистить базу знаний'}
                                         </button>
                                     </div>
                                 </div>
@@ -470,6 +478,16 @@ const AdminSourcesPage = () => {
                             <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
                                 <CheckCircle2 className="text-green-500" />
                                 <span className="font-medium">{successMessage}</span>
+                            </div>
+                        )}
+
+                        {chromaWarning && (
+                            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                                <AlertTriangle className="text-yellow-500 mt-0.5 shrink-0" />
+                                <div>
+                                    <span className="font-medium block">ChromDB недоступна</span>
+                                    <span className="text-sm">{chromaWarning}</span>
+                                </div>
                             </div>
                         )}
 
