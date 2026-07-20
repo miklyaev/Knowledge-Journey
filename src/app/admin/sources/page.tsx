@@ -155,6 +155,12 @@ const AdminSourcesPage = () => {
         }
         if (!pdfPath && !(window as any)._adminSelectedPdfFile) return;
 
+        const file = (window as any)._adminSelectedPdfFile;
+        if (file && file.size > 5 * 1024 * 1024) {
+            const confirmed = confirm("Размер PDF-файла превышает 5 МБ. Индексация может занять длительное время. Продолжить?");
+            if (!confirmed) return;
+        }
+
         setIsProcessing(true);
         setSuccessMessage("");
         setSections([]);
