@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { TopBar, GnomeWindow } from "@/components/GnomeUI";
 import { getPublicApiBaseUrl } from "@/lib/apiBase";
-import { Loader2, FileText, Save, Search, CheckCircle2, Trash2, Database, Brain, FileSearch } from "lucide-react";
+import { Loader2, FileText, Save, Search, CheckCircle2, Trash2, Database, Brain, FileSearch, Play, AlertTriangle } from "lucide-react";
 
 interface Topic {
     id: string;
@@ -38,6 +38,13 @@ const AdminSourcesPage = () => {
     const [pdfId, setPdfId] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState("");
     const [isClearing, setIsClearing] = useState(false);
+    const [processPdf, setProcessPdf] = useState(false);
+    const [pagesToRemove, setPagesToRemove] = useState("");
+    const [sectionRegex, setSectionRegex] = useState("^(глава\\s+\\d+|раздел\\s+\\d+|часть\\s+\\d+|§\\s*\\d+|\\d+\\.\\s+[А-ЯA-ZЁ]|\\d+\\.\\d+\\s+[А-ЯA-ZЁ])");
+    const [cleanedSections, setCleanedSections] = useState<{ id: string, title: string }[]>([]);
+    const [isTesting, setIsTesting] = useState(false);
+    const [testResults, setTestResults] = useState<{ sectionCount: number, sections: { id: string, title: string }[] } | null>(null);
+    const [testError, setTestError] = useState("");
 
     useEffect(() => {
         if (isAuthorized) {
@@ -106,6 +113,38 @@ const AdminSourcesPage = () => {
         }
     };
 
+    const handleTestRegex = async () => {
+        if (!(window as any)._adminSelectedPdfFile) {
+            alert("Сначала выберите PDF-файл");
+            return;
+        }
+
+        setIsTesting(true);
+        setTestResults(null);
+        setTestError("");
+        const baseUrl = getPublicApiBaseUrl();
+        const formData = new FormData();
+        formData.append('pdf', (window as any)._adminSelectedPdfFile);
+        formData.append('sectionRegex', sectionRegex);
+
+        try {
+            const response = await fetch(`${baseUrl}/api/pdf/test-regex`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.details || data.error || 'Ошибка тестирования');
+            }
+            setTestResults(data);
+        } catch (error: any) {
+            console.error('Error testing regex:', error);
+            setTestError(error.message);
+        } finally {
+            setIsTesting(false);
+        }
+    };
+
     const handleApplyPDF = async () => {
         if (selectedTopicId === "none") {
             alert("Выберите тему");
@@ -116,6 +155,7 @@ const AdminSourcesPage = () => {
         setIsProcessing(true);
         setSuccessMessage("");
         setSections([]);
+        setCleanedSections([]);
         setChunkSteps(STEPS.map((s, i) => ({ ...s, status: i === 0 ? "active" as const : "pending" as const })));
         const baseUrl = getPublicApiBaseUrl();
         const formData = new FormData();
@@ -126,6 +166,12 @@ const AdminSourcesPage = () => {
             formData.append('path', pdfPath);
         }
         formData.append('themeId', selectedTopicId);
+
+        if (processPdf) {
+            formData.append('processPdf', 'true');
+            formData.append('pagesToRemove', pagesToRemove);
+            formData.append('sectionRegex', sectionRegex);
+        }
 
         try {
             const response = await fetch(`${baseUrl}/api/pdf/upload`, {
@@ -138,6 +184,9 @@ const AdminSourcesPage = () => {
             }
             setPdfId(data.pdfId);
             setSections(data.sections);
+            if (data.cleanedSections) {
+                setCleanedSections(data.cleanedSections);
+            }
             setSuccessMessage("PDF успешно привязан к теме!");
             animateSteps();
         } catch (error: any) {
@@ -289,6 +338,98 @@ const AdminSourcesPage = () => {
                             </div>
                         </div>
 
+                        {/* Обработка PDF */}
+                        <div className="space-y-3">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={processPdf}
+                                    onChange={(e) => setProcessPdf(e.target.checked)}
+                                    className="w-4 h-4 text-ubuntu-orange focus:ring-ubuntu-orange border-gray-300 rounded"
+                                />
+                                <span className="text-sm font-bold text-gray-700">Обработка PDF</span>
+                            </label>
+
+                            {processPdf && (
+                                <div className="ml-6 space-y-3 border-l-2 border-ubuntu-orange pl-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                                            Страницы для удаления
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={pagesToRemove}
+                                            onChange={(e) => setPagesToRemove(e.target.value)}
+                                            placeholder="1,3,5-8"
+                                            className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ubuntu-orange outline-none"
+                                        />
+                                        <p className="text-xs text-gray-400 mt-1">Формат: 1,3,5-8</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                                            Регулярное выражение для разделов
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={sectionRegex}
+                                                onChange={(e) => { setSectionRegex(e.target.value); setTestResults(null); setTestError(""); }}
+                                                className="flex-1 p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ubuntu-orange outline-none font-mono"
+                                            />
+                                            <button
+                                                onClick={handleTestRegex}
+                                                disabled={!sectionRegex || !(window as any)._adminSelectedPdfFile || isTesting}
+                                                className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-sm w-[90px] justify-center"
+                                            >
+                                                {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play size={16} />}
+                                                {isTesting ? '...' : 'Тест'}
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-gray-400 mt-1">Поиск названий разделов в очищенном PDF</p>
+                                    </div>
+
+                                    {testError && (
+                                        <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg flex items-center gap-2 text-sm">
+                                            <AlertTriangle size={16} />
+                                            {testError}
+                                        </div>
+                                    )}
+
+                                    {testResults && (
+                                        <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                                            <div className="flex items-center gap-2">
+                                                {testResults.sectionCount > 0 ? (
+                                                    <CheckCircle2 size={18} className="text-green-500" />
+                                                ) : (
+                                                    <AlertTriangle size={18} className="text-yellow-500" />
+                                                )}
+                                                <span className="text-sm font-bold text-gray-700">
+                                                    Найдено разделов: {testResults.sectionCount}
+                                                </span>
+                                            </div>
+                                            {testResults.sectionCount > 0 && (
+                                                <div className="bg-gray-50 rounded-xl border border-gray-200 p-3 max-h-48 overflow-y-auto">
+                                                    <ul className="space-y-1.5">
+                                                        {testResults.sections.map(s => (
+                                                            <li key={s.id} className="text-sm text-gray-600 flex items-center gap-2">
+                                                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                                                                {s.title}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {testResults.sectionCount === 0 && (
+                                                <p className="text-xs text-yellow-600 italic">
+                                                    Регулярное выражение не нашло совпадений. Попробуйте изменить выражение.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                         {isProcessing && (
                             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
                                 <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
@@ -320,6 +461,25 @@ const AdminSourcesPage = () => {
                             <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
                                 <CheckCircle2 className="text-green-500" />
                                 <span className="font-medium">{successMessage}</span>
+                            </div>
+                        )}
+
+                        {cleanedSections.length > 0 && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                                <h3 className="text-lg font-bold text-gray-700">Доступные разделы в источнике (очистка):</h3>
+                                <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 max-h-60 overflow-y-auto">
+                                    <ul className="space-y-2">
+                                        {cleanedSections.map(s => (
+                                            <li key={s.id} className="text-sm text-gray-600 flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 bg-ubuntu-orange rounded-full" />
+                                                {s.title}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                <p className="text-xs text-gray-500 italic">
+                                    * Разделы, извлечённые после очистки PDF (удаления страниц).
+                                </p>
                             </div>
                         )}
 
