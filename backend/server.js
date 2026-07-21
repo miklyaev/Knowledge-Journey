@@ -21,7 +21,7 @@ const __dirname = path.dirname(__filename);
 const app = express(); app.use(cors());
 app.use(express.json());
 
-// РќР°СЃС‚СЂРѕР№РєР° multer РґР»СЏ Р·Р°РіСЂСѓР·РєРё PDF
+// Настройка multer для загрузки PDF
 const storage = multer.diskStorage({
 	destination: (req, file, cb) => {
 		const themeId = req.body.themeId || 'default';
@@ -37,9 +37,10 @@ const storage = multer.diskStorage({
 	}
 });
 const upload = multer({ storage });
-// Middleware РґР»СЏ Р»РѕРіРёСЂРѕРІР°РЅРёСЏ РІСЃРµС… РІС…РѕРґСЏС‰РёС… HTTP-Р·Р°РїСЂРѕСЃРѕРІ
+
+// Middleware для логирования всех входящих HTTP-запросов
 app.use((req, res, next) => {
-	// РСЃРєР»СЋС‡Р°РµРј Р·Р°РїСЂРѕСЃС‹ Рє health check РёР· Р»РѕРіРѕРІ
+	// Исключаем запросы к health check из логов
 	if (req.originalUrl === '/api/health') {
 		return next();
 	}
@@ -54,7 +55,7 @@ app.use((req, res, next) => {
 	next();
 });
 
-// Р­РЅРґРїРѕРёРЅС‚С‹ РґР»СЏ Р°РІС‚РѕСЂРёР·Р°С†РёРё
+// Эндпоинты для авторизации
 app.post('/api/admin/login', async (req, res) => {
 	try {
 		const { login, password } = req.body;
@@ -64,20 +65,19 @@ app.post('/api/admin/login', async (req, res) => {
 		if (login === adminLogin && password === adminPass) {
 			return res.json({ success: true });
 		} else {
-			return res.status(401).json({ error: 'РќРµРІРµСЂРЅС‹Р№ Р»РѕРіРёРЅ РёР»Рё РїР°СЂРѕР»СЊ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°' });
+			return res.status(401).json({ error: 'Неверный логин или пароль администратора' });
 		}
 	} catch (error) {
-		res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР°' });
+		res.status(500).json({ error: 'Ошибка сервера' });
 	}
 });
 
 app.post('/api/auth', async (req, res) => {
-
 	try {
 		const { nickname, password, description } = req.body;
 
 		if (!nickname || /^\\d/.test(nickname) || /\\s/.test(nickname)) {
-			return res.status(400).json({ error: 'РќРµРґРѕРїСѓСЃС‚РёРјС‹Р№ РЅРёРєРЅРµР№Рј' });
+			return res.status(400).json({ error: 'Недопустимый никнейм' });
 		}
 
 		const user = await dbService.getUserByUsername(nickname);
@@ -87,7 +87,7 @@ app.post('/api/auth', async (req, res) => {
 			if (isMatch) {
 				return res.json({ success: true, nickname });
 			} else {
-				return res.status(401).json({ error: 'РќРµРІРµСЂРЅС‹Р№ РїР°СЂРѕР»СЊ' });
+				return res.status(401).json({ error: 'Неверный пароль' });
 			}
 		} else {
 			if (!description) {
@@ -98,12 +98,12 @@ app.post('/api/auth', async (req, res) => {
 			if (success) {
 				return res.json({ success: true, nickname, isNew: true });
 			} else {
-				return res.status(500).json({ error: 'РћС€РёР±РєР° РїСЂРё СЃРѕР·РґР°РЅРёРё РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РІ Р‘Р”' });
+				return res.status(500).json({ error: 'Ошибка при создании пользователя в БД' });
 			}
 		}
 	} catch (error) {
 		console.error('Auth error:', error);
-		res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР° Р°РІС‚РѕСЂРёР·Р°С†РёРё' });
+		res.status(500).json({ error: 'Ошибка сервера авторизации' });
 	}
 });
 
@@ -114,36 +114,39 @@ app.get('/api/auth', async (req, res) => {
 	} catch (error) {
 		res.json({ users: [] });
 	}
-});// Р­РЅРґРїРѕРёРЅС‚ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ СЃРїРёСЃРєР° С‚РµРј РёР· themeCollection.json
+});
+
+// Эндпоинт для получения списка тем из themeCollection.json
 app.get('/api/themes', (req, res) => {
 	try {
 		const themesPath = path.join(__dirname, 'themeCollection.json');
 		if (!fs.existsSync(themesPath)) {
-			return res.status(404).json({ error: 'Р¤Р°Р№Р» С‚РµРј РЅРµ РЅР°Р№РґРµРЅ' });
+			return res.status(404).json({ error: 'Файл тем не найден' });
 		}
 		const themesData = fs.readFileSync(themesPath, 'utf8');
 		res.json(JSON.parse(themesData));
 	} catch (error) {
 		console.error('Error reading themes:', error);
-		res.status(500).json({ error: 'РћС€РёР±РєР° РїСЂРё Р·Р°РіСЂСѓР·РєРµ С‚РµРј' });
+		res.status(500).json({ error: 'Ошибка при загрузке тем' });
 	}
 });
 
-// Р¤СѓРЅРєС†РёСЏ РґР»СЏ С‡С‚РµРЅРёСЏ СЃРёСЃС‚РµРјРЅРѕРіРѕ РїСЂРѕРјРїС‚Р° РёР· С„Р°Р№Р»Р°
+// Функция для чтения системного промпта из файла
 const getSystemPrompt = () => {
 	try {
 		const promptPath = path.join(__dirname, 'systemPrompt.md');
 		return fs.readFileSync(promptPath, 'utf8');
 	} catch (error) {
-		console.error('РћС€РёР±РєР° РїСЂРё С‡С‚РµРЅРёРё systemPrompt.md:', error);
-		return "РўС‹ РїСЂРµРїРѕРґР°РІР°С‚РµР»СЊ РІ РІС‹СЃС€РµРј С‚РµС…РЅРёС‡РµСЃРєРѕРј Р·Р°РІРµРґРµРЅРёРё."; // Р¤РѕР»Р±СЌРє
+		console.error('Ошибка при чтении systemPrompt.md:', error);
+		return "Ты преподаватель в высшем техническом заведении."; // Фолбэк
 	}
 };
 
-// РћР±СЃР»СѓР¶РёРІР°РЅРёРµ СЃС‚Р°С‚РёС‡РµСЃРєРёС… С„Р°Р№Р»РѕРІ frontend (РґР»СЏ РїСЂРѕРґР°РєС€РµРЅР°)
-// РџСЂРѕРІРµСЂСЏРµРј, РµСЃС‚СЊ Р»Рё РїР°РїРєР° public (СЃС‚Р°С‚РёС‡РµСЃРєРёРµ С„Р°Р№Р»С‹ frontend)
+// Обслуживание статических файлов frontend (для продакшена)
+// Проверяем, есть ли папка public (статические файлы frontend)
 app.use(express.static(path.join(__dirname, 'public')));
-// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ GigaChat РєР»РёРµРЅС‚Р°
+
+// Инициализация GigaChat клиента
 let gigachatClient = null;
 
 function initializeGigaChat() {
@@ -154,13 +157,13 @@ function initializeGigaChat() {
 		return null;
 	}
 	try {
-		// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ GigaChat SDK
-		// РџСЂРёРјРµС‡Р°РЅРёРµ: API SDK РјРѕР¶РµС‚ РѕС‚Р»РёС‡Р°С‚СЊСЃСЏ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ РІРµСЂСЃРёРё Р±РёР±Р»РёРѕС‚РµРєРё
-		// Р•СЃР»Рё РІРѕР·РЅРёРєР°СЋС‚ РѕС€РёР±РєРё, РїСЂРѕРІРµСЂСЊС‚Рµ РґРѕРєСѓРјРµРЅС‚Р°С†РёСЋ: https://developers.sber.ru/docs/ru/gigachat/api
+		// Инициализация GigaChat SDK
+		// Примечание: API SDK может отличаться в зависимости от версии библиотеки
+		// Если возникают ошибки, проверьте документацию: https://developers.sber.ru/docs/ru/gigachat/api
 
 		const httpsAgent = new Agent({
-			rejectUnauthorized: false, // РћС‚РєР»СЋС‡Р°РµС‚ РїСЂРѕРІРµСЂРєСѓ РєРѕСЂРЅРµРІРѕРіРѕ СЃРµСЂС‚РёС„РёРєР°С‚Р°
-			// Р§РёС‚Р°Р№С‚Рµ РЅРёР¶Рµ РєР°Рє РјРѕР¶РЅРѕ РІРєР»СЋС‡РёС‚СЊ РїСЂРѕРІРµСЂРєСѓ СЃРµСЂС‚РёС„РёРєР°С‚Р° РњРёРЅ. Р¦РёС„СЂС‹
+			rejectUnauthorized: false, // Отключает проверку корневого сертификата
+			// Читайте ниже, как можно включить проверку сертификата Мин. Цифры
 		});
 
 		const client = new GigaChat({
@@ -178,34 +181,34 @@ function initializeGigaChat() {
 	}
 }
 
-// РРЅРёС†РёР°Р»РёР·РёСЂСѓРµРј РєР»РёРµРЅС‚ РїСЂРё СЃС‚Р°СЂС‚Рµ СЃРµСЂРІРµСЂР°
+// Инициализируем клиент при старте сервера
 gigachatClient = initializeGigaChat();
 
-// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РІРµРєС‚РѕСЂРЅРѕРіРѕ С…СЂР°РЅРёР»РёС‰Р° РїСЂРё СЃС‚Р°СЂС‚Рµ СЃРµСЂРІРµСЂР°
+// Инициализация векторного хранилища при старте сервера
 const initializeVectorStoreOnStart = async () => {
 	try {
 		const store = await initializeVectorStore();
 		if (store) {
-			console.log('вњ… VectorStore initialized successfully');
+			console.log('✅ VectorStore initialized successfully');
 		} else {
-			console.warn('вљ пёЏ VectorStore initialization failed - RAG features may not work');
+			console.warn('⚠️ VectorStore initialization failed - RAG features may not work');
 		}
 	} catch (error) {
-		console.warn('вљ пёЏ VectorStore initialization error:', error.message);
+		console.warn('⚠️ VectorStore initialization error:', error.message);
 	}
 };
 
-// Р¤СѓРЅРєС†РёСЏ РґР»СЏ Р»РѕРіРёСЂРѕРІР°РЅРёСЏ Р·Р°РїСЂРѕСЃРѕРІ Рє РЅРµР№СЂРѕСЃРµС‚СЏРј РІ Р±Р°Р·Сѓ РґР°РЅРЅС‹С…
+// Функция для логирования запросов к нейросетям в базу данных
 const logRequest = async (aiProvider, prompt, referrer) => {
 	try {
-		const referrerValue = referrer || 'РЅРµ СѓРєР°Р·Р°РЅ';
+		const referrerValue = referrer || 'не указан';
 
 		// Insert request data into the database
 		await dbService.insertRequest(aiProvider, referrerValue, prompt);
 
-		console.log(`Р—Р°РїСЂРѕСЃ СѓСЃРїРµС€РЅРѕ Р·Р°РїРёСЃР°РЅ РІ Р‘Р”: ${aiProvider}, РґР»РёРЅР° РїСЂРѕРјРїС‚Р°: ${prompt?.length || 0}`);
+		console.log(`Запрос успешно записан в БД: ${aiProvider}, длина промпта: ${prompt?.length || 0}`);
 	} catch (error) {
-		console.error('РћС€РёР±РєР° РїСЂРё Р·Р°РїРёСЃРё РІ Р±Р°Р·Сѓ РґР°РЅРЅС‹С…:', {
+		console.error('Ошибка при записи в базу данных:', {
 			error: error.message,
 			stack: error.stack,
 			aiProvider,
@@ -214,21 +217,25 @@ const logRequest = async (aiProvider, prompt, referrer) => {
 	}
 };
 
-// РџСЂРѕРєСЃРё-СЌРЅРґРїРѕРёРЅС‚ РґР»СЏ РіРµРЅРµСЂР°С†РёРё С‚РµРєСЃС‚Р°
+// Прокси-эндпоинт для генерации текста
 app.post('/api/gigachat/generate', async (req, res) => {
 	try {
 		const { prompt, systemPrompt: customSystemPrompt, topicPrompt, pdfId, selectedSection, themeId } = req.body;
 		let systemPrompt = customSystemPrompt || getSystemPrompt();
 
-		// RAG: РџРѕР»СѓС‡РµРЅРёРµ РєРѕРЅС‚РµРєСЃС‚Р°
+		// RAG: Получение контекста
 		if (pdfId && gigachatClient) {
 			try {
 				const vectorStoreInstance = getVectorStoreInstance();
 				if (vectorStoreInstance) {
-					const chunks = await vectorStoreInstance.searchChunks(gigachatClient, prompt, { pdfId, sectionTitle: selectedSection, themeId });
+					const chunks = await vectorStoreInstance.searchChunks(
+						gigachatClient,
+						prompt,
+						{ pdfId, sectionTitle: selectedSection, themeId }
+					);
 					if (chunks && chunks.length > 0) {
 						const context = chunks.map(c => c.text).join('\\n---\\n');
-						systemPrompt += `\\n\\nРљРѕРЅС‚РµРєСЃС‚ РёР· Р±Р°Р·С‹ Р·РЅР°РЅРёР№:\\n---\\n${context}\\n---\\nРСЃРїРѕР»СЊР·СѓР№ СЌС‚РѕС‚ РєРѕРЅС‚РµРєСЃС‚ РґР»СЏ РѕС‚РІРµС‚Р° РЅР° РІРѕРїСЂРѕСЃ.`;
+						systemPrompt += `\\n\\nКонтекст из базы знаний:\\n---\\n${context}\\n---\\nИспользуй этот контекст для ответа на вопрос.`;
 					}
 				}
 			} catch (ragError) {
@@ -243,24 +250,24 @@ app.post('/api/gigachat/generate', async (req, res) => {
 
 		if (!gigachatClient) {
 			return res.status(500).json({
-				error: 'GigaChat РєР»РёРµРЅС‚ РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ',
-				details: 'РџСЂРѕРІРµСЂСЊС‚Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ РѕРєСЂСѓР¶РµРЅРёСЏ GIGACHAT_CLIENT_ID Рё GIGACHAT_CLIENT_SECRET'
+				error: 'GigaChat клиент не инициализирован',
+				details: 'Проверьте переменные окружения GIGACHAT_CLIENT_ID и GIGACHAT_CLIENT_SECRET'
 			});
 		}
 
 		if (!prompt) {
 			return res.status(400).json({
-				error: 'РџР°СЂР°РјРµС‚СЂ prompt РѕР±СЏР·Р°С‚РµР»РµРЅ'
+				error: 'Параметр prompt обязателен'
 			});
 		}
 
-		// Р›РѕРіРёСЂРѕРІР°РЅРёРµ Р·Р°РїСЂРѕСЃР°
+		// Логирование запроса
 		const referrer = req.headers.referer || req.headers.referrer;
 		logRequest('GigaChat', prompt, referrer).catch(err => console.error('Logging error:', err));
 
-		// РСЃРїРѕР»СЊР·СѓРµРј SDK РґР»СЏ РіРµРЅРµСЂР°С†РёРё РѕС‚РІРµС‚Р°
-		// РџСЂРёРјРµС‡Р°РЅРёРµ: РњРµС‚РѕРґ РјРѕР¶РµС‚ РѕС‚Р»РёС‡Р°С‚СЊСЃСЏ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ РІРµСЂСЃРёРё SDK
-		// Р’РѕР·РјРѕР¶РЅС‹Рµ РІР°СЂРёР°РЅС‚С‹: gigachatClient.chat.createCompletion() РёР»Рё gigachatClient.completions.create()
+		// Используем SDK для генерации ответа
+		// Примечание: Метод может отличаться в зависимости от версии SDK
+		// Возможные варианты: gigachatClient.chat.createCompletion() или gigachatClient.completions.create()
 		const response = await gigachatClient.chat({
 			model: 'GigaChat',
 			messages: [
@@ -271,7 +278,7 @@ app.post('/api/gigachat/generate', async (req, res) => {
 			max_tokens: 2000
 		});
 
-		const content = response.choices?.[0]?.message?.content || "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РѕС‚РІРµС‚.";
+		const content = response.choices?.[0]?.message?.content || "Не удалось получить ответ.";
 
 		res.json({
 			content: content
@@ -279,14 +286,13 @@ app.post('/api/gigachat/generate', async (req, res) => {
 	} catch (error) {
 		console.error('GigaChat Proxy Error:', error);
 		res.status(500).json({
-			error: 'РћС€РёР±РєР° РїСЂРё РѕР±СЂР°С‰РµРЅРёРё Рє GigaChat',
-			details: error.name || 'РќРµРёР·РІРµСЃС‚РЅР°СЏ РѕС€РёР±РєР°'
+			error: 'Ошибка при обращении к GigaChat',
+			details: error.name || 'Неизвестная ошибка'
 		});
 	}
 });
 
-
-// РџСЂРѕРєСЃРё-СЌРЅРґРїРѕРёРЅС‚ РґР»СЏ YandexGPT API
+// Прокси-эндпоинт для YandexGPT API
 app.post('/api/yandexgpt/generate', async (req, res) => {
 	try {
 		const {
@@ -299,15 +305,19 @@ app.post('/api/yandexgpt/generate', async (req, res) => {
 		} = req.body;
 		let systemPrompt = customSystemPrompt || getSystemPrompt();
 
-		// RAG: РџРѕР»СѓС‡РµРЅРёРµ РєРѕРЅС‚РµРєСЃС‚Р°
+		// RAG: Получение контекста
 		if (pdfId && gigachatClient) {
 			try {
 				const vectorStoreInstance = getVectorStoreInstance();
 				if (vectorStoreInstance) {
-					const chunks = await vectorStoreInstance.searchChunks(gigachatClient, prompt, { pdfId, sectionTitle: selectedSection, themeId });
+					const chunks = await vectorStoreInstance.searchChunks(
+						gigachatClient,
+						prompt,
+						{ pdfId, sectionTitle: selectedSection, themeId }
+					);
 					if (chunks && chunks.length > 0) {
 						const context = chunks.map(c => c.text).join('\\n---\\n');
-						systemPrompt += `\\n\\nРљРѕРЅС‚РµРєСЃС‚ РёР· Р±Р°Р·С‹ Р·РЅР°РЅРёР№:\\n---\\n${context}\\n---\\nРСЃРїРѕР»СЊР·СѓР№ СЌС‚РѕС‚ РєРѕРЅС‚РµРєСЃС‚ РґР»СЏ РѕС‚РІРµС‚Р° РЅР° РІРѕРїСЂРѕСЃ.`;
+						systemPrompt += `\\n\\nКонтекст из базы знаний:\\n---\\n${context}\\n---\\nИспользуй этот контекст для ответа на вопрос.`;
 					}
 				}
 			} catch (ragError) {
@@ -323,22 +333,22 @@ app.post('/api/yandexgpt/generate', async (req, res) => {
 		const { YANDEXGPT_API_KEY, YANDEXGPT_FOLDER_ID } = process.env;
 		if (!YANDEXGPT_API_KEY || !YANDEXGPT_FOLDER_ID) {
 			return res.status(500).json({
-				error: 'YandexGPT API РєР»СЋС‡ РёР»Рё Folder ID РЅРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅС‹',
-				details: 'РџСЂРѕРІРµСЂСЊС‚Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ РѕРєСЂСѓР¶РµРЅРёСЏ YANDEXGPT_API_KEY Рё YANDEXGPT_FOLDER_ID'
+				error: 'YandexGPT API ключ или Folder ID не установлены',
+				details: 'Проверьте переменные окружения YANDEXGPT_API_KEY и YANDEXGPT_FOLDER_ID'
 			});
 		}
 
 		if (!prompt) {
 			return res.status(400).json({
-				error: 'РџР°СЂР°РјРµС‚СЂ prompt РѕР±СЏР·Р°С‚РµР»РµРЅ'
+				error: 'Параметр prompt обязателен'
 			});
 		}
 
-		// Р›РѕРіРёСЂРѕРІР°РЅРёРµ Р·Р°РїСЂРѕСЃР°
+		// Логирование запроса
 		const referrer = req.headers.referer || req.headers.referrer;
 		logRequest('YandexGPT', prompt, referrer).catch(err => console.error('Logging error:', err));
 
-		// Р’С‹Р·РѕРІ YandexGPT API
+		// Вызов YandexGPT API
 		const url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
 		const requestBody = {
 			modelUri: `gpt://${YANDEXGPT_FOLDER_ID}/yandexgpt/latest`,
@@ -374,7 +384,7 @@ app.post('/api/yandexgpt/generate', async (req, res) => {
 		}
 
 		const data = await response.json();
-		const content = data.result?.alternatives?.[0]?.message?.text || "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РѕС‚РІРµС‚.";
+		const content = data.result?.alternatives?.[0]?.message?.text || "Не удалось получить ответ.";
 
 		res.json({
 			content: content
@@ -382,13 +392,13 @@ app.post('/api/yandexgpt/generate', async (req, res) => {
 	} catch (error) {
 		console.error('YandexGPT Proxy Error:', error);
 		res.status(500).json({
-			error: 'РћС€РёР±РєР° РїСЂРё РѕР±СЂР°С‰РµРЅРёРё Рє YandexGPT API',
-			details: error.message || 'РќРµРёР·РІРµСЃС‚РЅР°СЏ РѕС€РёР±РєР°'
+			error: 'Ошибка при обращении к YandexGPT API',
+			details: error.message || 'Неизвестная ошибка'
 		});
 	}
 });
 
-// Р­РЅРґРїРѕРёРЅС‚ РґР»СЏ РѕС†РµРЅРєРё СЃРІРѕР±РѕРґРЅРѕРіРѕ РѕС‚РІРµС‚Р° С‡РµСЂРµР· РР
+// Эндпоинт для оценки свободного ответа через ИИ
 app.post('/api/ai/evaluate', async (req, res) => {
 	try {
 		const { question, answer, provider = 'gigachat' } = req.body;
@@ -396,15 +406,15 @@ app.post('/api/ai/evaluate', async (req, res) => {
 			return res.status(400).json({ error: 'Question and answer are required' });
 		}
 
-		const evaluationSystemPrompt = `РўС‹ вЂ” СЃС‚СЂРѕРіРёР№, РЅРѕ СЃРїСЂР°РІРµРґР»РёРІС‹Р№ РїСЂРµРїРѕРґР°РІР°С‚РµР»СЊ. РўРІРѕСЏ Р·Р°РґР°С‡Р° вЂ” РѕС†РµРЅРёС‚СЊ РѕС‚РІРµС‚ СЃС‚СѓРґРµРЅС‚Р° РЅР° РІРѕРїСЂРѕСЃ РїРѕ РґРµСЃСЏС‚РёР±Р°Р»Р»СЊРЅРѕР№ С€РєР°Р»Рµ (РѕС‚ 0 РґРѕ 10).
-РџСЂР°РІРёР»Р° РѕС†РµРЅРєРё:
-1. Р•СЃР»Рё РѕС‚РІРµС‚ РІ РєРѕСЂРЅРµ РЅРµРІРµСЂРЅС‹Р№, Р±РµСЃСЃРјС‹СЃР»РµРЅРЅС‹Р№ РёР»Рё РїСѓСЃС‚РѕР№ вЂ” СЃС‚Р°РІСЊ 0 Р±Р°Р»Р»РѕРІ.
-2. Р•СЃР»Рё РѕС‚РІРµС‚ С‡Р°СЃС‚РёС‡РЅРѕ РІРµСЂРЅС‹Р№, СЃС‚Р°РІСЊ РѕС‚ 3 РґРѕ 6 Р±Р°Р»Р»РѕРІ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ РїРѕР»РЅРѕС‚С‹.
-3. Р•СЃР»Рё РѕС‚РІРµС‚ РІРµСЂРЅС‹Р№ Рё С‚РѕС‡РЅС‹Р№, СЃС‚Р°РІСЊ РѕС‚ 7 РґРѕ 10 Р±Р°Р»Р»РѕРІ.
-4. РћС‚РІРµС‚ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РІ С„РѕСЂРјР°С‚Рµ JSON: {"score": С‡РёСЃР»Рѕ, "feedback": "РєСЂР°С‚РєРѕРµ РїРѕСЏСЃРЅРµРЅРёРµ РЅР° СЂСѓСЃСЃРєРѕРј СЏР·С‹РєРµ"}.
-5. РќРµ РїРёС€Рё РЅРёС‡РµРіРѕ, РєСЂРѕРјРµ JSON.`;
+		const evaluationSystemPrompt = `Ты — строгий, но справедливый преподаватель. Твоя задача — оценить ответ студента на вопрос по десятибалльной шкале (от 0 до 10).
+Правила оценки:
+1. Если ответ в корне неверный, бессмысленный или пустой — ставь 0 баллов.
+2. Если ответ частично верный, ставь от 3 до 6 баллов в зависимости от полноты.
+3. Если ответ верный и точный, ставь от 7 до 10 баллов.
+4. Ответ должен быть в формате JSON: {"score": число, "feedback": "краткое пояснение на русском языке"}.
+5. Не пиши ничего, кроме JSON.`;
 
-		const prompt = `Р’РѕРїСЂРѕСЃ: ${question}\\nРћС‚РІРµС‚ СЃС‚СѓРґРµРЅС‚Р°: ${answer}`;
+		const prompt = `Вопрос: ${question}\\nОтвет студента: ${answer}`;
 
 		let content = "";
 
@@ -419,7 +429,7 @@ app.post('/api/ai/evaluate', async (req, res) => {
 			});
 			content = response.choices?.[0]?.message?.content || "";
 		} else {
-			// РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ YandexGPT
+			// По умолчанию YandexGPT
 			const { YANDEXGPT_API_KEY, YANDEXGPT_FOLDER_ID } = process.env;
 			const url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
 			const response = await fetch(url, {
@@ -441,7 +451,7 @@ app.post('/api/ai/evaluate', async (req, res) => {
 			content = data.result?.alternatives?.[0]?.message?.text || "";
 		}
 
-		// РџР°СЂСЃРёРј JSON РёР· РѕС‚РІРµС‚Р° РР
+		// Парсим JSON из ответа ИИ
 		const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);
 		if (jsonMatch) {
 			try {
@@ -457,11 +467,15 @@ app.post('/api/ai/evaluate', async (req, res) => {
 		}
 	} catch (error) {
 		console.error('Evaluation Error:', error);
-		res.status(500).json({ error: 'Failed to evaluate answer', score: 2, feedback: "РћС€РёР±РєР° РїСЂРё СЃРІСЏР·Рё СЃ РР. РќР°С‡РёСЃР»РµРЅРѕ РјРёРЅРёРјР°Р»СЊРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ Р±Р°Р»Р»РѕРІ." });
+		res.status(500).json({
+			error: 'Failed to evaluate answer',
+			score: 2,
+			feedback: "Ошибка при связи с ИИ. Начислено минимальное количество баллов."
+		});
 	}
 });
 
-// Р­РЅРґРїРѕРёРЅС‚ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ РІСЃРµС… РѕС‚С‡РµС‚РѕРІ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
+// Эндпоинт для получения всех отчетов пользователя
 app.get('/api/reports/:username', async (req, res) => {
 	try {
 		const { username } = req.params;
@@ -476,20 +490,20 @@ app.get('/api/reports/:username', async (req, res) => {
 	}
 });
 
-// Р­РЅРґРїРѕРёРЅС‚ РґР»СЏ Р·Р°РіСЂСѓР·РєРё Рё РёРЅРґРµРєСЃР°С†РёРё PDF
+// Эндпоинт для загрузки и индексации PDF
 app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 	try {
 		const { themeId, processPdf, pagesToRemove, sectionRegex } = req.body;
 		const file = req.file;
 
 		if (!file) {
-			return res.status(400).json({ error: 'Р¤Р°Р№Р» РЅРµ Р·Р°РіСЂСѓР¶РµРЅ' });
+			return res.status(400).json({ error: 'Файл не загружен' });
 		}
 
 		const pdfId = path.basename(file.filename, path.extname(file.filename));
 		const filePath = file.path;
 
-		// 0. РћРїС†РёРѕРЅР°Р»СЊРЅР°СЏ РѕС‡РёСЃС‚РєР° PDF (СѓРґР°Р»РµРЅРёРµ СЃС‚СЂР°РЅРёС†, РёР·РІР»РµС‡РµРЅРёРµ СЂР°Р·РґРµР»РѕРІ)
+		// 0. Опциональная очистка PDF (удаление страниц, извлечение разделов)
 		let cleanedSections = null;
 		let cleanedPdfPath = filePath;
 
@@ -506,49 +520,71 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 			console.log(`PDF cleaned: pages removed ${result.pdfInfo.removedPages.join(',')}, sections found: ${result.sections.length}`);
 		}
 
-		// 1. РџР°СЂСЃРёРЅРі
+		// 1. Парсинг
 		console.log('Starting PDF parsing...');
 		const text = await parsePDF(cleanedPdfPath);
 		console.log('PDF parsed successfully, text length:', text.length);
 
-		// 2. РР·РІР»РµС‡РµРЅРёРµ СЂР°Р·РґРµР»РѕРІ
+		// 2. Извлечение разделов
 		console.log('Extracting sections...');
 		const sections = extractSections(text);
 		console.log('Extracted sections:', sections.length);
 
-		// 3. Р§Р°РЅРєРёРЅРі
+		// 3. Чанкинг
 		console.log('Chunking sections...');
 		const chunks = chunkBySection(sections, pdfId, themeId);
 		console.log('Total chunks created:', chunks.length);
 
 		if (chunks.length === 0) {
-			console.warn('вљ пёЏ РџРѕСЃР»Рµ РїР°СЂСЃРёРЅРіР° PDF РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ С‚РµРєСЃС‚РѕРІС‹Рµ С‡Р°РЅРєРё. Р’РѕР·РјРѕР¶РЅР°СЏ РїСЂРёС‡РёРЅР°: PDF СЃРѕСЃС‚РѕРёС‚ РёР· СЃРєР°РЅРѕРІ/РёР·РѕР±СЂР°Р¶РµРЅРёР№ Р±РµР· С‚РµРєСЃС‚РѕРІРѕРіРѕ СЃР»РѕСЏ.');
+			console.warn('⚠️ После парсинга PDF не удалось получить текстовые чанки. Возможная причина: PDF состоит из сканов/изображений без текстового слоя.');
 		}
 
-		// 4. Р’РµРєС‚РѕСЂРёР·Р°С†РёСЏ Рё СЃРѕС…СЂР°РЅРµРЅРёРµ РІ ChromaDB
+		// 4. Векторизация и сохранение в ChromaDB
 		let vectorizationSummary = null;
 		if (gigachatClient) {
 			console.log('Adding chunks to VectorStore...');
-try {
+			try {
 				const vectorStoreInstance = getVectorStoreInstance();
 				if (vectorStoreInstance) {
 					vectorizationSummary = await vectorStoreInstance.addChunks(gigachatClient, chunks);
 					console.log('Chunks added to VectorStore');
 				} else {
 					console.warn('VectorStore not initialized, skipping vectorization');
-					vectorizationSummary = { error: 'ChromaDB недоступна: векторное хранилище не инициализировано', added: 0, skipped: 0, skippedEmptyText: 0, total: 0 };
+					vectorizationSummary = {
+						error: 'ChromaDB недоступна: векторное хранилище не инициализировано',
+						added: 0,
+						skipped: 0,
+						skippedEmptyText: 0,
+						total: 0
+					};
 				}
 			} catch (vsError) {
 				console.error('VectorStore Error:', vsError.message);
-vectorizationSummary = { error: vsError.message, added: 0, skipped: 0, skippedEmptyText: 0, total: 0 };
+				vectorizationSummary = {
+					error: vsError.message,
+					added: 0,
+					skipped: 0,
+					skippedEmptyText: 0,
+					total: 0
+				};
 			}
-} else {
+		} else {
 			console.warn('GigaChat client not initialized, skipping vectorization');
-			vectorizationSummary = { error: 'GigaChat клиент не инициализирован, векторизация недоступна', added: 0, skipped: 0, skippedEmptyText: 0, total: 0 };
+			vectorizationSummary = {
+				error: 'GigaChat клиент не инициализирован, векторизация недоступна',
+				added: 0,
+				skipped: 0,
+				skippedEmptyText: 0,
+				total: 0
+			};
 		}
-		// 5. РЎРѕС…СЂР°РЅРµРЅРёРµ РјРµС‚Р°РґР°РЅРЅС‹С… РІ MySQL
+
+		// 5. Сохранение метаданных в MySQL
 		console.log('Saving metadata to MySQL...');
-		const sectionList = sections.map((s, index) => ({ id: `${pdfId}_${index}`, title: s.title }));
+		const sectionList = sections.map((s, index) => ({
+			id: `${pdfId}_${index}`,
+			title: s.title
+		}));
 		await dbService.savePdfMetadata(pdfId, themeId, file.originalname, sectionList);
 		console.log('Metadata saved successfully');
 		res.json({
@@ -560,7 +596,10 @@ vectorizationSummary = { error: vsError.message, added: 0, skipped: 0, skippedEm
 		});
 	} catch (error) {
 		console.error('PDF Upload/Index Error:', error);
-		res.status(500).json({ error: 'РћС€РёР±РєР° РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ PDF', details: error.message });
+		res.status(500).json({
+			error: 'Ошибка при обработке PDF',
+			details: error.message
+		});
 	}
 });
 
@@ -574,7 +613,7 @@ app.post('/api/pdf/test-regex', upload.single('pdf'), async (req, res) => {
 		}
 
 		if (!sectionRegex) {
-			fs.unlink(file.path, () => {});
+			fs.unlink(file.path, () => { });
 			return res.status(400).json({ error: 'Регулярное выражение не указано' });
 		}
 
@@ -598,12 +637,19 @@ app.post('/api/pdf/test-regex', upload.single('pdf'), async (req, res) => {
 			});
 		} finally {
 			// Удаляем временные файлы
-			try { if (cleanedPath) fs.unlinkSync(cleanedPath); } catch (_) {}
-			try { fs.unlinkSync(file.path); } catch (_) {}
+			try {
+				if (cleanedPath) fs.unlinkSync(cleanedPath);
+			} catch (_) { }
+			try {
+				fs.unlinkSync(file.path);
+			} catch (_) { }
 		}
 	} catch (error) {
 		console.error('PDF Test Regex Error:', error);
-		res.status(500).json({ error: 'Ошибка при тестировании регулярного выражения', details: error.message });
+		res.status(500).json({
+			error: 'Ошибка при тестировании регулярного выражения',
+			details: error.message
+		});
 	}
 });
 
@@ -612,40 +658,39 @@ app.get('/api/pdf/sections/:pdfId', async (req, res) => {
 		const { pdfId } = req.params;
 		const sections = await dbService.getPdfSections(pdfId);
 		if (!sections) {
-			return res.status(404).json({ error: 'Р Р°Р·РґРµР»С‹ РЅРµ РЅР°Р№РґРµРЅС‹' });
+			return res.status(404).json({ error: 'Разделы не найдены' });
 		}
 		res.json(sections);
 	} catch (error) {
 		console.error('Get Sections Error:', error);
-		res.status(500).json({ error: 'РћС€РёР±РєР° РїСЂРё РїРѕР»СѓС‡РµРЅРёРё СЂР°Р·РґРµР»РѕРІ' });
+		res.status(500).json({ error: 'Ошибка при получении разделов' });
 	}
 });
 
-// Р­РЅРґРїРѕРёРЅС‚ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ PDF РїРѕ С‚РµРјРµ
+// Эндпоинт для получения PDF по теме
 app.get('/api/pdf/by-theme/:themeId', async (req, res) => {
 	try {
 		const { themeId } = req.params;
 		const pdfData = await dbService.getPdfByThemeId(themeId);
 		if (!pdfData) {
-			return res.status(404).json({ error: 'РџСЂРёРІСЏР·РєР° Рє РёСЃС‚РѕС‡РЅРёРєСѓ РЅРµ РЅР°Р№РґРµРЅР° РґР»СЏ СЌС‚РѕР№ С‚РµРјС‹' });
+			return res.status(404).json({ error: 'Привязка к источнику не найдена для этой темы' });
 		}
 		res.json(pdfData);
 	} catch (error) {
 		console.error('Get PDF by Theme Error:', error);
-		res.status(500).json({ error: 'РћС€РёР±РєР° РїСЂРё РїРѕР»СѓС‡РµРЅРёРё РґР°РЅРЅС‹С… PDF' });
+		res.status(500).json({ error: 'Ошибка при получении данных PDF' });
 	}
 });
 
-
-// Р­РЅРґРїРѕРёРЅС‚ РґР»СЏ РѕС‡РёСЃС‚РєРё РґР°РЅРЅС‹С… С‚РµРјС‹ РёР· ChromaDB Рё MySQL
+// Эндпоинт для очистки данных темы из ChromaDB и MySQL
 app.post('/api/pdf/clear-theme', async (req, res) => {
 	try {
 		const { themeId } = req.body;
 		if (!themeId) {
-			return res.status(400).json({ error: 'themeId РѕР±СЏР·Р°С‚РµР»РµРЅ' });
+			return res.status(400).json({ error: 'themeId обязателен' });
 		}
 
-		// 1. РЈРґР°Р»СЏРµРј РІРµРєС‚РѕСЂС‹ РёР· ChromaDB
+		// 1. Удаляем векторы из ChromaDB
 		const vectorStoreInstance = getVectorStoreInstance();
 		let chromaDeleted = 0;
 		if (vectorStoreInstance) {
@@ -656,54 +701,62 @@ app.post('/api/pdf/clear-theme', async (req, res) => {
 				console.error('ChromaDB delete error:', vsError.message);
 			}
 		} else {
-			console.warn('VectorStore РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ, РїСЂРѕРїСѓСЃРєР°РµРј РѕС‡РёСЃС‚РєСѓ ChromaDB');
+			console.warn('VectorStore не инициализирован, пропускаем очистку ChromaDB');
 		}
 
-		// 2. РЈРґР°Р»СЏРµРј РјРµС‚Р°РґР°РЅРЅС‹Рµ РёР· MySQL
+		// 2. Удаляем метаданные из MySQL
 		const dbDeleted = await dbService.deletePdfByThemeId(themeId);
 
-		// 3. РЈРґР°Р»СЏРµРј С„Р°Р№Р»С‹ PDF РёР· РїР°РїРєРё knowledge_base
+		// 3. Удаляем файлы PDF из папки knowledge_base
 		const kbDir = path.join(__dirname, 'knowledge_base', themeId);
 		if (fs.existsSync(kbDir)) {
 			fs.rmSync(kbDir, { recursive: true, force: true });
-			console.log(`рџ—‘пёЏ РЈРґР°Р»РµРЅР° РїР°РїРєР° Р·РЅР°РЅРёР№ РґР»СЏ С‚РµРјС‹ "${themeId}"`);
+			console.log(`🗑️ Удалена папка знаний для темы "${themeId}"`);
 		}
 
 		res.json({
 			success: true,
-			message: `РўРµРјР° "${themeId}" РѕС‡РёС‰РµРЅР°`,
+			message: `Тема "${themeId}" очищена`,
 			chromaDeleted,
 			dbDeleted
 		});
 	} catch (error) {
 		console.error('Clear Theme Error:', error);
-		res.status(500).json({ error: 'РћС€РёР±РєР° РїСЂРё РѕС‡РёСЃС‚РєРµ С‚РµРјС‹', details: error.message });
+		res.status(500).json({
+			error: 'Ошибка при очистке темы',
+			details: error.message
+		});
 	}
 });
 
-// Р­РЅРґРїРѕРёРЅС‚ РґР»СЏ РїРѕРёСЃРєР° РІ Р±Р°Р·Рµ Р·РЅР°РЅРёР№ (RAG retrieval)
+// Эндпоинт для поиска в базе знаний (RAG retrieval)
 app.post('/api/rag/retrieve', async (req, res) => {
 	try {
 		const { query, themeId, pdfId, sectionTitle, topK = 5 } = req.body;
 
 		if (!gigachatClient) {
-			return res.status(500).json({ error: 'GigaChat РєР»РёРµРЅС‚ РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ' });
+			return res.status(500).json({ error: 'GigaChat клиент не инициализирован' });
 		}
 
 		const vectorStoreInstance = getVectorStoreInstance();
 		if (!vectorStoreInstance) {
-			return res.status(500).json({ error: 'VectorStore РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ' });
+			return res.status(500).json({ error: 'VectorStore не инициализирован' });
 		}
 
-		const chunks = await vectorStoreInstance.searchChunks(gigachatClient, query, { themeId, pdfId, sectionTitle }, topK);
+		const chunks = await vectorStoreInstance.searchChunks(
+			gigachatClient,
+			query,
+			{ themeId, pdfId, sectionTitle },
+			topK
+		);
 		res.json({ chunks });
 	} catch (error) {
 		console.error('RAG Retrieval Error:', error);
-		res.status(500).json({ error: 'РћС€РёР±РєР° РїСЂРё РїРѕРёСЃРєРµ РІ Р±Р°Р·Рµ Р·РЅР°РЅРёР№' });
+		res.status(500).json({ error: 'Ошибка при поиске в базе знаний' });
 	}
 });
 
-// Р­РЅРґРїРѕРёРЅС‚ РґР»СЏ СЃРѕС…СЂР°РЅРµРЅРёСЏ С„РёРЅР°Р»СЊРЅРѕРіРѕ РѕС‚С‡РµС‚Р°
+// Эндпоинт для сохранения финального отчета
 app.post('/api/save-report', async (req, res) => {
 	try {
 		const report = req.body;
@@ -721,14 +774,19 @@ app.post('/api/save-report', async (req, res) => {
 		}
 	} catch (error) {
 		console.error('Error saving report:', error);
-		res.status(500).json({ error: 'Failed to save report', details: error.message });
+		res.status(500).json({
+			error: 'Failed to save report',
+			details: error.message
+		});
 	}
-});// Р­РЅРґРїРѕРёРЅС‚ /api/data
+});
+
+// Эндпоинт /api/data
 app.get('/api/data', (req, res) => {
 	res.json({
 		status: 'success',
 		data: {
-			message: 'Р”Р°РЅРЅС‹Рµ СѓСЃРїРµС€РЅРѕ РїРѕР»СѓС‡РµРЅС‹'
+			message: 'Данные успешно получены'
 		}
 	});
 });
@@ -742,13 +800,14 @@ app.get('/api/health', (req, res) => {
 	});
 });
 
-// Fallback РґР»СЏ React Router (SPA) - РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РїРѕСЃР»РµРґРЅРёРј РјР°СЂС€СЂСѓС‚РѕРј
+// Fallback для React Router (SPA) - должен быть последним маршрутом
 app.get('*', (req, res) => {
-	// Р•СЃР»Рё Р·Р°РїСЂРѕСЃ РЅР°С‡РёРЅР°РµС‚СЃСЏ СЃ /api, РЅРµ РѕР±СЂР°Р±Р°С‚С‹РІР°РµРј РєР°Рє SPA
+	// Если запрос начинается с /api, не обрабатываем как SPA
 	if (req.path.startsWith('/api')) {
 		return res.status(404).json({ error: 'API endpoint not found' });
 	}
-	// Р”Р»СЏ РІСЃРµС… РѕСЃС‚Р°Р»СЊРЅС‹С… РјР°СЂС€СЂСѓС‚РѕРІ РѕС‚РґР°С‘Рј index.html
+
+	// Для всех остальных маршрутов отдаём index.html
 	res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
@@ -760,11 +819,11 @@ dbService.connect()
 	.catch(err => {
 		const errorMsg = `FATAL: Failed to connect to database: ${err.message}`;
 		console.error(errorMsg);
-		// Р—Р°РІРµСЂС€Р°РµРј СЂР°Р±РѕС‚Сѓ, С‚Р°Рє РєР°Рє Р‘Р” С‚РµРїРµСЂСЊ РѕР±СЏР·Р°С‚РµР»СЊРЅР°
+		// Завершаем работу, так как БД теперь обязательна
 		process.exit(1);
 	});
 
-// РРЅРёС†РёР°Р»РёР·РёСЂСѓРµРј РІРµРєС‚РѕСЂРЅРѕРµ С…СЂР°РЅРёР»РёС‰Рµ РїРѕСЃР»Рµ РїРѕРґРєР»СЋС‡РµРЅРёСЏ Рє Р‘Р”
+// Инициализируем векторное хранилище после подключения к БД
 initializeVectorStoreOnStart();
 
 // Graceful shutdown handling
