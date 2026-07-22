@@ -848,4 +848,4 @@ const server = app.listen(PORT, () => {
 		console.warn('VectorStore not initialized - RAG features may not work');
 	}
 });
-server.timeout = 300000;
+server.timeout = 600000;

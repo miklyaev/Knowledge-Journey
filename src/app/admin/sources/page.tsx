@@ -86,7 +86,7 @@ const AdminSourcesPage = () => {
         }
     };
 
-const handleBrowsePDF = async () => {
+    const handleBrowsePDF = async () => {
         try {
             // @ts-ignore
             const [fileHandle] = await window.showOpenFilePicker({
@@ -165,7 +165,7 @@ const handleBrowsePDF = async () => {
             return;
         }
         if (file && file.size > 5 * 1024 * 1024) {
-            const confirmed = confirm("Размер PDF-файла превышает 5 МБ. Индексация может занять длительное время. Продолжить?");
+            const confirmed = confirm("Размер PDF-файла превышает 5 МБ. Индексация может занять длительное время (более 5 мин). Продолжить?");
             if (!confirmed) return;
         }
 
@@ -307,7 +307,7 @@ const handleBrowsePDF = async () => {
                                 <FileText className="text-ubuntu-orange" />
                                 Выбор темы и файла
                             </h3>
-                            
+
                             <div className="grid grid-cols-1 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Тема обучения</label>
@@ -322,7 +322,7 @@ const handleBrowsePDF = async () => {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Источник (PDF не более 50 Мб)</label>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">ИСТОЧНИК (PDF не более 50 Мб)</label>
                                     <div className="flex gap-2 w-full">
                                         <input
                                             type="text"
@@ -454,13 +454,13 @@ const handleBrowsePDF = async () => {
                                         <div key={i} className="flex items-center gap-3 text-sm">
                                             <div className={
                                                 step.status === "done" ? "text-green-500" :
-                                                step.status === "active" ? "text-ubuntu-orange animate-pulse" : "text-gray-300"
+                                                    step.status === "active" ? "text-ubuntu-orange animate-pulse" : "text-gray-300"
                                             }>
                                                 {step.status === "done" ? <CheckCircle2 size={16} /> : step.icon}
                                             </div>
                                             <span className={
                                                 step.status === "done" ? "text-green-700 font-medium" :
-                                                step.status === "active" ? "text-gray-800 font-medium" : "text-gray-400"
+                                                    step.status === "active" ? "text-gray-800 font-medium" : "text-gray-400"
                                             }>
                                                 {step.label}
                                             </span>
