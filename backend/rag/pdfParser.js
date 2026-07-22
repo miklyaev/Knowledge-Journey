@@ -44,24 +44,55 @@ export async function parsePDF(filePath) {
 
 /**
  * Извлекает разделы из текста на основе заголовков.
+ * @param {string} text - текст для анализа
+ * @param {string|null} [customRegex=null] - кастомное регулярное выражение (если задано, используется вместо встроенного)
+ * @param {string[]|null} [sectionTitles=null] - готовый массив названий разделов (из cleanPdf);
+ *   если передан, текст режется по этим заголовкам без повторного regex-сканирования
  */
-export function extractSections(text) {
+export function extractSections(text, customRegex = null, sectionTitles = null) {
 	if (!text) return [];
 	const lines = text.split('\n');
 	const sections = [];
 	let currentSection = { title: 'Введение', content: '' };
 
-	const sectionRegex = /^(Глава|Раздел|Часть|Статья|Параграф|Пункт|\d+\.\d*|\d+)\s+.+/i;
+	const usePredefinedTitles = sectionTitles && Array.isArray(sectionTitles) && sectionTitles.length > 0;
 
-	for (const line of lines) {
-		const trimmedLine = line.trim();
-		if (trimmedLine.length > 0 && sectionRegex.test(trimmedLine)) {
-			if (currentSection.content.trim()) {
-				sections.push(currentSection);
+	if (usePredefinedTitles) {
+		// Используем уже извлечённые заголовки — режем текст по ним
+		const titleSet = new Set(sectionTitles.map(t => t.replace(/\s+/g, ' ').trim()));
+
+		for (const line of lines) {
+			const trimmedLine = line.trim();
+			if (trimmedLine.length > 0) {
+				const normalizedLine = trimmedLine.replace(/\s+/g, ' ');
+				if (titleSet.has(normalizedLine)) {
+					if (currentSection.content.trim()) {
+						sections.push(currentSection);
+					}
+					currentSection = { title: normalizedLine, content: '' };
+					continue;
+				}
 			}
-			currentSection = { title: trimmedLine, content: '' };
-		} else if (trimmedLine.length > 0) {
-			currentSection.content += line + '\n';
+			if (trimmedLine.length > 0) {
+				currentSection.content += line + '\n';
+			}
+		}
+	} else {
+		// Извлекаем разделы через regex
+		const sectionRegex = customRegex
+			? new RegExp(customRegex, 'iu')
+			: /^(Глава|Раздел|Часть|Статья|Параграф|Пункт|\d+\.\d*|\d+)\s+.+/i;
+
+		for (const line of lines) {
+			const trimmedLine = line.trim();
+			if (trimmedLine.length > 0 && sectionRegex.test(trimmedLine)) {
+				if (currentSection.content.trim()) {
+					sections.push(currentSection);
+				}
+				currentSection = { title: trimmedLine, content: '' };
+			} else if (trimmedLine.length > 0) {
+				currentSection.content += line + '\n';
+			}
 		}
 	}
 
@@ -77,5 +108,4 @@ export function extractSections(text) {
 	}
 
 	return sections;
-
 }

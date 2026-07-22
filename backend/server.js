@@ -503,9 +503,10 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 		const pdfId = path.basename(file.filename, path.extname(file.filename));
 		const filePath = file.path;
 
-		// 0. Опциональная очистка PDF (удаление страниц, извлечение разделов)
+// 0. Опциональная очистка PDF (удаление страниц, извлечение разделов)
 		let cleanedSections = null;
 		let cleanedPdfPath = filePath;
+		let parsedText = null;
 
 		if (processPdf === 'true') {
 			console.log('Starting PDF cleaning (remove pages, extract sections)...');
@@ -517,17 +518,23 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 				id: `${pdfId}_clean_${index}`,
 				title
 			}));
+			parsedText = result.text;
 			console.log(`PDF cleaned: pages removed ${result.pdfInfo.removedPages.join(',')}, sections found: ${result.sections.length}`);
 		}
 
-		// 1. Парсинг
-		console.log('Starting PDF parsing...');
-		const text = await parsePDF(cleanedPdfPath);
-		console.log('PDF parsed successfully, text length:', text.length);
+		// 1. Парсинг (если не был очищен — парсим сейчас, иначе используем текст из cleanPdf)
+		if (!parsedText) {
+			console.log('Starting PDF parsing...');
+			parsedText = await parsePDF(cleanedPdfPath);
+			console.log('PDF parsed successfully, text length:', parsedText.length);
+		}
 
-		// 2. Извлечение разделов
+		// 2. Извлечение разделов (если была очистка — используем готовые заголовки из cleanPdf)
 		console.log('Extracting sections...');
-		const sections = extractSections(text);
+		const sectionTitles = processPdf === 'true'
+			? (cleanedSections || []).map(s => s.title)
+			: null;
+		const sections = extractSections(parsedText, null, sectionTitles);
 		console.log('Extracted sections:', sections.length);
 
 		// 3. Чанкинг
