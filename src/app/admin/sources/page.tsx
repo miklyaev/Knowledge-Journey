@@ -86,13 +86,17 @@ const AdminSourcesPage = () => {
         }
     };
 
-    const handleBrowsePDF = async () => {
+const handleBrowsePDF = async () => {
         try {
             // @ts-ignore
             const [fileHandle] = await window.showOpenFilePicker({
                 types: [{ description: 'PDF Files', accept: { 'application/pdf': ['.pdf'] } }],
             });
             const file = await fileHandle.getFile();
+            if (file.size > 50 * 1024 * 1024) {
+                alert(`Файл слишком большой (${(file.size / 1024 / 1024).toFixed(1)} МБ). Максимальный размер — 50 МБ.`);
+                return;
+            }
             setPdfPath(file.name);
             (window as any)._adminSelectedPdfFile = file;
         } catch (err) {
@@ -156,6 +160,10 @@ const AdminSourcesPage = () => {
         if (!pdfPath && !(window as any)._adminSelectedPdfFile) return;
 
         const file = (window as any)._adminSelectedPdfFile;
+        if (file && file.size > 50 * 1024 * 1024) {
+            alert(`Файл слишком большой (${(file.size / 1024 / 1024).toFixed(1)} МБ). Максимальный размер — 50 МБ.`);
+            return;
+        }
         if (file && file.size > 5 * 1024 * 1024) {
             const confirmed = confirm("Размер PDF-файла превышает 5 МБ. Индексация может занять длительное время. Продолжить?");
             if (!confirmed) return;
@@ -314,7 +322,7 @@ const AdminSourcesPage = () => {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Источник (PDF)</label>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Источник (PDF не более 50 Мб)</label>
                                     <div className="flex gap-2 w-full">
                                         <input
                                             type="text"
