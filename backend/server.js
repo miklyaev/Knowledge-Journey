@@ -36,7 +36,7 @@ const storage = multer.diskStorage({
 		cb(null, `${uuidv4()}${ext}`);
 	}
 });
-const upload = multer({ storage });
+const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 
 // Middleware для логирования всех входящих HTTP-запросов
 app.use((req, res, next) => {
@@ -834,7 +834,7 @@ process.on('SIGINT', async () => {
 });
 
 const PORT = process.env.PORT || 3031;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
 	console.log(`GigaChat Proxy Server running on port ${PORT}`);
 	if (gigachatClient) {
 		console.log('GigaChat client initialized successfully');
@@ -848,3 +848,4 @@ app.listen(PORT, () => {
 		console.warn('VectorStore not initialized - RAG features may not work');
 	}
 });
+server.timeout = 300000;
