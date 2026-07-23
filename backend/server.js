@@ -234,8 +234,8 @@ app.post('/api/gigachat/generate', async (req, res) => {
 						{ pdfId, sectionTitle: selectedSection, themeId }
 					);
 					if (chunks && chunks.length > 0) {
-						const context = chunks.map(c => c.text).join('\\n---\\n');
-						systemPrompt += `\\n\\nКонтекст из базы знаний:\\n---\\n${context}\\n---\\nИспользуй этот контекст для ответа на вопрос.`;
+						const context = chunks.map(c => c.text).join('\n---\n');
+						systemPrompt += `\n\nКонтекст из базы знаний:\n---\n${context}\n---\nИспользуй этот контекст для ответа на вопрос.`;
 					}
 				}
 			} catch (ragError) {
@@ -243,9 +243,9 @@ app.post('/api/gigachat/generate', async (req, res) => {
 			}
 		}
 		if (topicPrompt) {
-			const lines = systemPrompt.split('\\n');
+			const lines = systemPrompt.split('\n');
 			lines[0] = topicPrompt;
-			systemPrompt = lines.join('\\n');
+			systemPrompt = lines.join('\n');
 		}
 
 		if (!gigachatClient) {
@@ -316,8 +316,8 @@ app.post('/api/yandexgpt/generate', async (req, res) => {
 						{ pdfId, sectionTitle: selectedSection, themeId }
 					);
 					if (chunks && chunks.length > 0) {
-						const context = chunks.map(c => c.text).join('\\n---\\n');
-						systemPrompt += `\\n\\nКонтекст из базы знаний:\\n---\\n${context}\\n---\\nИспользуй этот контекст для ответа на вопрос.`;
+						const context = chunks.map(c => c.text).join('\n---\n');
+						systemPrompt += `\n\nКонтекст из базы знаний:\n---\n${context}\n---\nИспользуй этот контекст для ответа на вопрос.`;
 					}
 				}
 			} catch (ragError) {
@@ -325,9 +325,9 @@ app.post('/api/yandexgpt/generate', async (req, res) => {
 			}
 		}
 		if (topicPrompt) {
-			const lines = systemPrompt.split('\\n');
+			const lines = systemPrompt.split('\n');
 			lines[0] = topicPrompt;
-			systemPrompt = lines.join('\\n');
+			systemPrompt = lines.join('\n');
 		}
 
 		const { YANDEXGPT_API_KEY, YANDEXGPT_FOLDER_ID } = process.env;
@@ -414,7 +414,7 @@ app.post('/api/ai/evaluate', async (req, res) => {
 4. Ответ должен быть в формате JSON: {"score": число, "feedback": "краткое пояснение на русском языке"}.
 5. Не пиши ничего, кроме JSON.`;
 
-		const prompt = `Вопрос: ${question}\\nОтвет студента: ${answer}`;
+		const prompt = `Вопрос: ${question}\nОтвет студента: ${answer}`;
 
 		let content = "";
 
@@ -503,7 +503,7 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 		const pdfId = path.basename(file.filename, path.extname(file.filename));
 		const filePath = file.path;
 
-// 0. Опциональная очистка PDF (удаление страниц, извлечение разделов)
+		// 0. Опциональная очистка PDF (удаление страниц, извлечение разделов)
 		let cleanedSections = null;
 		let cleanedPdfPath = filePath;
 		let parsedText = null;
@@ -835,7 +835,7 @@ initializeVectorStoreOnStart();
 
 // Graceful shutdown handling
 process.on('SIGINT', async () => {
-	console.log('\\nShutting down gracefully...');
+	console.log('\nShutting down gracefully...');
 	await dbService.disconnect();
 	process.exit(0);
 });
