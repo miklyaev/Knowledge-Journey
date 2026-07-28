@@ -224,6 +224,30 @@
 - **Nginx на VDS**: Добавлены директивы client_max_body_size 50M, proxy_read_timeout 300s, proxy_connect_timeout 75s, proxy_send_timeout 300s в server-блок.
 - **Backend (\server.js\)**: Увеличен таймаут HTTP-сервера до 300 секунд (\server.timeout = 300000\), добавлен лимит multer 50MB.
 
+## 2026-07-23 — Исправление ChromaDB ChromaValueError при нескольких фильтрах
+
+**Область:** Backend, RAG
+
+**Что изменилось:**
+- **`backend/rag/vectorStore.js` (`searchChunks`)**: при нескольких фильтрах (`pdfId`, `sectionTitle`, `themeId`) объект `where` собирался как `{ pdfId, sectionTitle, themeId }` — ChromaDB требует ровно один оператор на верхнем уровне `where` и падал с `ChromaValueError: Expected 'where' to have exactly one operator, but got 3`.
+- Теперь условия собираются в массив и, если их больше одного, оборачиваются в `{ $and: [...] }`; при одном условии передаётся как есть; при отсутствии — `where` не передаётся.
+
+**Зачем / контекст:**
+Баг проявился после унификации RAG-фильтра (см. запись ниже) — генерация тестов с включённым RAG падала при выборе PDF+раздела.
+
+## 2026-07-23 — Приведение RAG-условий к единому виду в эндпоинтах генерации
+
+**Область:** Backend
+
+**Что изменилось:**
+- В `server.js` оба эндпоинта (`/api/gigachat/generate` и `/api/yandexgpt/generate`) приведены к единому условию включения RAG:
+  - Вместо `if (themeId && gigachatClient)` (GigaChat) и `if (pdfId && gigachatClient)` (YandexGPT) — теперь везде `if (pdfId && gigachatClient)`.
+  - Из фильтра поиска `searchChunks()` убран `themeId` — при выбранном PDF достаточно `pdfId` для точной фильтрации.
+  - `themeId` убран из деструктуризации `req.body` в обоих эндпоинтах.
+
+**Зачем / контекст:**
+Была неконсистентность: GigaChat пытался искать в ChromaDB даже без выбранного PDF (только по `themeId`), что могло возвращать чанки от любого PDF темы. Теперь RAG включается только когда фронтенд явно передал `pdfId`.
+
 ## 2026-07-23 — Исправление генерации тестов (экранирование `\n`)
 
 **Область:** Backend

@@ -189,16 +189,23 @@ class VectorStore {
             return [];
         }
 
-        const where = {};
+        const conditions = [];
 
-        if (filters.pdfId) where.pdfId = filters.pdfId;
-        if (filters.themeId) where.themeId = filters.themeId;
-        if (filters.sectionTitle) where.sectionTitle = filters.sectionTitle;
+        if (filters.pdfId) conditions.push({ pdfId: filters.pdfId });
+        if (filters.themeId) conditions.push({ themeId: filters.themeId });
+        if (filters.sectionTitle) conditions.push({ sectionTitle: filters.sectionTitle });
+
+        let where;
+        if (conditions.length === 1) {
+            where = conditions[0];
+        } else if (conditions.length > 1) {
+            where = { $and: conditions };
+        }
 
         const results = await this.collection.query({
             queryEmbeddings: [queryEmbedding],
             nResults: topK,
-            where: Object.keys(where).length > 0 ? where : undefined
+            where
         });
 
         return results.documents[0].map((doc, i) => ({
