@@ -500,6 +500,12 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 			return res.status(400).json({ error: 'Файл не загружен' });
 		}
 
+		const themesPath = path.join(__dirname, 'themeCollection.json');
+		const knownThemes = JSON.parse(fs.readFileSync(themesPath, 'utf-8'));
+		if (!themeId || !knownThemes.some(t => t.id === themeId)) {
+			return res.status(400).json({ error: `Неизвестный themeId: "${themeId}"` });
+		}
+
 		const pdfId = path.basename(file.filename, path.extname(file.filename));
 		const filePath = file.path;
 
@@ -740,6 +746,10 @@ app.post('/api/pdf/clear-theme', async (req, res) => {
 app.post('/api/rag/retrieve', async (req, res) => {
 	try {
 		const { query, themeId, pdfId, sectionTitle, topK = 5 } = req.body;
+
+		if (!themeId) {
+			return res.status(400).json({ error: 'themeId обязателен' });
+		}
 
 		if (!gigachatClient) {
 			return res.status(500).json({ error: 'GigaChat клиент не инициализирован' });

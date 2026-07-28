@@ -147,26 +147,23 @@ class VectorStore {
      * @returns {{ deleted: number }}
      */
     async deleteByThemeId(themeId) {
+        if (!themeId) {
+            throw new Error('themeId обязателен для удаления записей из ChromaDB');
+        }
         if (!this.collection) await this.init();
 
         try {
-            // Получаем все ID записей для данной темы
-            const getResult = await this.collection.get({
+            const beforeCount = await this.collection.count();
+
+            await this.collection.delete({
                 where: { themeId }
             });
 
-            const ids = getResult?.ids || [];
-            if (ids.length === 0) {
-                console.log(`ℹ️ Нет записей для темы "${themeId}" в ChromaDB`);
-                return { deleted: 0 };
-            }
+            const afterCount = await this.collection.count();
+            const deleted = Math.max(0, beforeCount - afterCount);
 
-            await this.collection.delete({
-                ids: ids
-            });
-
-            console.log(`✅ Удалено ${ids.length} записей темы "${themeId}" из ChromaDB`);
-            return { deleted: ids.length };
+            console.log(`✅ Удалено ${deleted} записей темы "${themeId}" из ChromaDB`);
+            return { deleted };
         } catch (error) {
             console.error(`❌ Ошибка удаления темы "${themeId}" из ChromaDB:`, error.message);
             throw new Error(`Ошибка очистки ChromaDB: ${error.message}`);
@@ -181,6 +178,9 @@ class VectorStore {
      * @param {number} topK Количество результатов
      */
     async searchChunks(gigachatClient, query, filters = {}, topK = 5) {
+        if (!filters.themeId) {
+            throw new Error('themeId обязателен для поиска в ChromaDB');
+        }
         if (!this.collection) await this.init();
 
         const queryEmbedding = await getEmbedding(gigachatClient, query);
@@ -189,18 +189,12 @@ class VectorStore {
             return [];
         }
 
-        const conditions = [];
+        const conditions = [{ themeId: filters.themeId }];
 
         if (filters.pdfId) conditions.push({ pdfId: filters.pdfId });
-        if (filters.themeId) conditions.push({ themeId: filters.themeId });
         if (filters.sectionTitle) conditions.push({ sectionTitle: filters.sectionTitle });
 
-        let where;
-        if (conditions.length === 1) {
-            where = conditions[0];
-        } else if (conditions.length > 1) {
-            where = { $and: conditions };
-        }
+        const where = conditions.length === 1 ? conditions[0] : { $and: conditions };
 
         const results = await this.collection.query({
             queryEmbeddings: [queryEmbedding],

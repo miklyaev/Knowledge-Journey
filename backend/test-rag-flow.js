@@ -60,7 +60,7 @@ async function testRagFlow() {
         // 6. Поиск для проверки
         console.log("🔍 Шаг 4: Тестовый поиск...");
         const query = "Кто предложил тест Тьюринга?";
-        const results = await vectorStore.searchChunks(gigachatClient, query, { pdfId: 'test-pdf' }, 1);
+        const results = await vectorStore.searchChunks(gigachatClient, query, { pdfId: 'test-pdf', themeId: 'test-theme' }, 1);
         
         if (results && results.length > 0) {
             console.log("✅ УСПЕХ! Результат поиска:");
