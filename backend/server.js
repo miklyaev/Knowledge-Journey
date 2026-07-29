@@ -236,7 +236,7 @@ app.post('/api/gigachat/generate', async (req, res) => {
 					);
 					if (chunks && chunks.length > 0) {
 						const context = chunks.map(c => c.text).join('\n---\n');
-						systemPrompt += `\n\nКонтекст из базы знаний:\n---\n${context}\n---\nИспользуй этот контекст для ответа на вопрос.`;
+						systemPrompt += `\n\nКонтекст из базы знаний:\n---\n${context}\n---\nОбязательно сначала используй этот контекст для ответа на вопрос.`;
 					}
 				}
 			} catch (ragError) {
@@ -318,7 +318,7 @@ app.post('/api/yandexgpt/generate', async (req, res) => {
 					);
 					if (chunks && chunks.length > 0) {
 						const context = chunks.map(c => c.text).join('\n---\n');
-						systemPrompt += `\n\nКонтекст из базы знаний:\n---\n${context}\n---\nИспользуй этот контекст для ответа на вопрос.`;
+						systemPrompt += `\n\nКонтекст из базы знаний:\n---\n${context}\n---\nОбязательно сначала используй этот контекст для ответа на вопрос.`;
 					}
 				}
 			} catch (ragError) {
