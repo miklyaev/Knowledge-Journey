@@ -47,6 +47,7 @@ const AdminSourcesPage = () => {
     const [testResults, setTestResults] = useState<{ sectionCount: number, sections: { id: string, title: string }[] } | null>(null);
     const [testError, setTestError] = useState("");
     const [chromaWarning, setChromaWarning] = useState("");
+    const [sectionMode, setSectionMode] = useState<'regex' | 'center'>('regex');
 
     useEffect(() => {
         if (isAuthorized) {
@@ -152,6 +153,37 @@ const AdminSourcesPage = () => {
         }
     };
 
+    const handleTestCenter = async () => {
+        if (!(window as any)._adminSelectedPdfFile) {
+            alert("Сначала выберите PDF-файл");
+            return;
+        }
+
+        setIsTesting(true);
+        setTestResults(null);
+        setTestError("");
+        const baseUrl = getPublicApiBaseUrl();
+        const formData = new FormData();
+        formData.append('pdf', (window as any)._adminSelectedPdfFile);
+
+        try {
+            const response = await fetch(`${baseUrl}/api/pdf/test-center`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.details || data.error || 'Ошибка тестирования');
+            }
+            setTestResults(data);
+        } catch (error: any) {
+            console.error('Error testing center:', error);
+            setTestError(error.message);
+        } finally {
+            setIsTesting(false);
+        }
+    };
+
     const handleApplyPDF = async () => {
         if (selectedTopicId === "none") {
             alert("Выберите тему");
@@ -187,6 +219,7 @@ const AdminSourcesPage = () => {
 
         if (processPdf) {
             formData.append('processPdf', 'true');
+            formData.append('sectionMode', sectionMode);
             formData.append('pagesToRemove', pagesToRemove);
             formData.append('sectionRegex', sectionRegex);
         }
@@ -370,36 +403,88 @@ const AdminSourcesPage = () => {
                                         />
                                         <p className="text-xs text-gray-400 mt-1">Формат: 1,3,5-8</p>
                                     </div>
+
+                                    {/* Режим извлечения разделов */}
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                                            Регулярное выражение для разделов
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                                            Режим извлечения разделов
                                         </label>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="text"
-                                                value={sectionRegex}
-                                                onChange={(e) => { setSectionRegex(e.target.value); setTestResults(null); setTestError(""); }}
-                                                className="flex-1 p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ubuntu-orange outline-none font-mono"
-                                            />
+                                        <div className="flex flex-col gap-2">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="sectionMode"
+                                                    checked={sectionMode === 'regex'}
+                                                    onChange={() => { setSectionMode('regex'); setTestResults(null); setTestError(""); }}
+                                                    className="w-4 h-4 text-ubuntu-orange focus:ring-ubuntu-orange border-gray-300"
+                                                />
+                                                <span className="text-sm text-gray-700">Регулярное выражение для разделов</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="sectionMode"
+                                                    checked={sectionMode === 'center'}
+                                                    onChange={() => { setSectionMode('center'); setTestResults(null); setTestError(""); }}
+                                                    className="w-4 h-4 text-ubuntu-orange focus:ring-ubuntu-orange border-gray-300"
+                                                />
+                                                <span className="text-sm text-gray-700">Если разделы по центру без нумерации</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {sectionMode === 'regex' && (
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                                                Регулярное выражение для разделов
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={sectionRegex}
+                                                    onChange={(e) => { setSectionRegex(e.target.value); setTestResults(null); setTestError(""); }}
+                                                    className="flex-1 p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ubuntu-orange outline-none font-mono"
+                                                />
+                                                <button
+                                                    onClick={() => { setSectionRegex(DEFAULT_SECTION_REGEX); setTestResults(null); setTestError(""); }}
+                                                    disabled={sectionRegex === DEFAULT_SECTION_REGEX}
+                                                    title="Сбросить к выражению по умолчанию"
+                                                    className="px-2 py-2 border border-gray-300 hover:bg-gray-100 text-gray-500 rounded-lg text-sm transition-all flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed w-[38px]"
+                                                >
+                                                    ↩
+                                                </button>
+                                                <button
+                                                    onClick={handleTestRegex}
+                                                    disabled={!sectionRegex || !(window as any)._adminSelectedPdfFile || isTesting}
+                                                    className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-sm w-[90px] justify-center"
+                                                >
+                                                    {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play size={16} />}
+                                                    {isTesting ? '...' : 'Тест'}
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-gray-400 mt-1">Поиск названий разделов в очищенном PDF</p>
+                                        </div>
+                                    )}
+
+                                    {sectionMode === 'center' && (
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                                                Алгоритм центровки заголовков
+                                            </label>
+                                            <p className="text-xs text-gray-500 mb-2">
+                                                Заголовки определяются автоматически по расположению текста по центру страницы
+                                                и характерной длине (1–8 слов, начинаются с заглавной буквы).
+                                            </p>
                                             <button
-                                                onClick={() => { setSectionRegex(DEFAULT_SECTION_REGEX); setTestResults(null); setTestError(""); }}
-                                                disabled={sectionRegex === DEFAULT_SECTION_REGEX}
-                                                title="Сбросить к выражению по умолчанию"
-                                                className="px-2 py-2 border border-gray-300 hover:bg-gray-100 text-gray-500 rounded-lg text-sm transition-all flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed w-[38px]"
-                                            >
-                                                ↩
-                                            </button>
-                                            <button
-                                                onClick={handleTestRegex}
-                                                disabled={!sectionRegex || !(window as any)._adminSelectedPdfFile || isTesting}
+                                                onClick={handleTestCenter}
+                                                disabled={!(window as any)._adminSelectedPdfFile || isTesting}
                                                 className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-bold disabled:bg-gray-300 transition-all flex items-center gap-2 shadow-sm w-[90px] justify-center"
                                             >
                                                 {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play size={16} />}
                                                 {isTesting ? '...' : 'Тест'}
                                             </button>
                                         </div>
-                                        <p className="text-xs text-gray-400 mt-1">Поиск названий разделов в очищенном PDF</p>
-                                    </div>
+                                    )}
 
                                     {testError && (
                                         <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg flex items-center gap-2 text-sm">
@@ -434,7 +519,9 @@ const AdminSourcesPage = () => {
                                             )}
                                             {testResults.sectionCount === 0 && (
                                                 <p className="text-xs text-yellow-600 italic">
-                                                    Регулярное выражение не нашло совпадений. Попробуйте изменить выражение.
+                                                    {sectionMode === 'regex'
+                                                        ? 'Регулярное выражение не нашло совпадений. Попробуйте изменить выражение.'
+                                                        : 'Алгоритм центровки не обнаружил заголовков. Попробуйте выбрать режим регулярного выражения.'}
                                                 </p>
                                             )}
                                         </div>

@@ -14,6 +14,7 @@ import { parsePDF, extractSections } from './rag/pdfParser.js';
 import { chunkBySection } from './rag/chunker.js';
 import { initializeVectorStore, getVectorStoreInstance } from './rag/vectorStore.js';
 import { cleanPdf, defaultSectionRegex, extractTextFromPdf, extractSectionTitles } from './rag/pdfCleanerService.js';
+import { extractCenterSections } from './rag/centerChunksService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -493,7 +494,7 @@ app.get('/api/reports/:username', async (req, res) => {
 // Эндпоинт для загрузки и индексации PDF
 app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 	try {
-		const { themeId, processPdf, pagesToRemove, sectionRegex } = req.body;
+		const { themeId, processPdf, pagesToRemove, sectionRegex, sectionMode } = req.body;
 		const file = req.file;
 
 		if (!file) {
@@ -528,20 +529,27 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 			console.log(`PDF cleaned: pages removed ${result.pdfInfo.removedPages.join(',')}, sections found: ${result.sections.length}`);
 		}
 
-		// 1. Парсинг (если не был очищен — парсим сейчас, иначе используем текст из cleanPdf)
-		if (!parsedText) {
-			console.log('Starting PDF parsing...');
-			parsedText = await parsePDF(cleanedPdfPath);
-			console.log('PDF parsed successfully, text length:', parsedText.length);
+		// 1. Извлечение разделов (режим: центровка или стандартный regex)
+		let sections;
+		if (sectionMode === 'center') {
+			console.log('Using center-based section extraction...');
+			const centerSections = await extractCenterSections(cleanedPdfPath);
+			sections = centerSections.map(s => ({ title: s.title, content: s.content }));
+			console.log('Extracted sections via center algorithm:', sections.length);
+		} else {
+			// Стандартный путь: парсинг + regex / готовые заголовки
+			if (!parsedText) {
+				console.log('Starting PDF parsing...');
+				parsedText = await parsePDF(cleanedPdfPath);
+				console.log('PDF parsed successfully, text length:', parsedText.length);
+			}
+			console.log('Extracting sections...');
+			const sectionTitles = processPdf === 'true'
+				? (cleanedSections || []).map(s => s.title)
+				: null;
+			sections = extractSections(parsedText, null, sectionTitles);
+			console.log('Extracted sections:', sections.length);
 		}
-
-		// 2. Извлечение разделов (если была очистка — используем готовые заголовки из cleanPdf)
-		console.log('Extracting sections...');
-		const sectionTitles = processPdf === 'true'
-			? (cleanedSections || []).map(s => s.title)
-			: null;
-		const sections = extractSections(parsedText, null, sectionTitles);
-		console.log('Extracted sections:', sections.length);
 
 		// 3. Чанкинг
 		console.log('Chunking sections...');
@@ -662,6 +670,40 @@ app.post('/api/pdf/test-regex', upload.single('pdf'), async (req, res) => {
 		res.status(500).json({
 			error: 'Ошибка при тестировании регулярного выражения',
 			details: error.message
+		});
+	}
+});
+
+// Эндпоинт для тестирования алгоритма центровки
+app.post('/api/pdf/test-center', upload.single('pdf'), async (req, res) => {
+	try {
+		const file = req.file;
+		if (!file) {
+			return res.status(400).json({ error: 'Файл не загружен' });
+		}
+
+		const filePath = file.path;
+
+		try {
+			const sections = await extractCenterSections(filePath);
+
+			res.json({
+				success: true,
+				sectionCount: sections.length,
+				sections: sections.map((s, index) => ({
+					id: `test_${index}`,
+					title: s.title,
+				})),
+			});
+		} finally {
+			// Удаляем временные файлы
+			try { fs.unlinkSync(file.path); } catch (_) { }
+		}
+	} catch (error) {
+		console.error('PDF Test Center Error:', error);
+		res.status(500).json({
+			error: 'Ошибка при тестировании алгоритма центровки',
+			details: error.message,
 		});
 	}
 });

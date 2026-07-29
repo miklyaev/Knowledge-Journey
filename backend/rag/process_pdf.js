@@ -133,7 +133,7 @@ async function ensureParentDirectoryExists(filePath) {
 async function removePagesFromPdf(inputPdfPath, outputPdfPath, pagesToRemove) {
 	const inputPdfBytes = await fs.readFile(inputPdfPath);
 
-	const pdfDoc = await PDFDocument.load(inputPdfBytes);
+	const pdfDoc = await PDFDocument.load(inputPdfBytes, { ignoreEncryption: true });
 
 	const totalPages = pdfDoc.getPageCount();
 
