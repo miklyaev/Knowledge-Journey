@@ -494,7 +494,7 @@ app.get('/api/reports/:username', async (req, res) => {
 // Эндпоинт для загрузки и индексации PDF
 app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 	try {
-		const { themeId, processPdf, pagesToRemove, sectionRegex, sectionMode } = req.body;
+		const { themeId, processPdf, pagesToRemove, sectionRegex, sectionMode, skipFirstPages } = req.body;
 		const file = req.file;
 
 		if (!file) {
@@ -519,11 +519,13 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 			console.log('Starting PDF cleaning (remove pages, extract sections)...');
 			const ext = path.extname(filePath);
 			const cleanedPath = filePath.replace(ext, `_cleaned${ext}`);
-			const result = await cleanPdf(filePath, cleanedPath, pagesToRemove || '', sectionRegex || '');
+			const skipPages = parseInt(skipFirstPages, 10) || 0;
+			const result = await cleanPdf(filePath, cleanedPath, pagesToRemove || '', sectionRegex || '', skipPages);
 			cleanedPdfPath = cleanedPath;
 			cleanedSections = result.sections.map((title, index) => ({
 				id: `${pdfId}_clean_${index}`,
-				title
+				title,
+				finalized: false
 			}));
 			parsedText = result.text;
 			console.log(`PDF cleaned: pages removed ${result.pdfInfo.removedPages.join(',')}, sections found: ${result.sections.length}`);
@@ -549,6 +551,27 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 				: null;
 			sections = extractSections(parsedText, null, sectionTitles);
 			console.log('Extracted sections:', sections.length);
+		}
+
+		// Если processPdf === 'true', сохраняем в БД для последующей финализации
+		if (processPdf === 'true') {
+			console.log('Saving PDF metadata to DB for later finalization...');
+			// Сохраняем полные данные (с контентом) в БД для последующей финализации
+			const sectionList = sections.map((s, index) => ({
+				id: `${pdfId}_${index}`,
+				title: s.title,
+				content: s.content || ''
+			}));
+			await dbService.savePdfMetadata(pdfId, themeId, file.originalname, sectionList);
+
+			// Возвращаем только id и title для отображения на фронтенде
+			return res.json({
+				pdfId,
+				filename: file.originalname,
+				sections: sectionList.map(s => ({ id: s.id, title: s.title, finalized: false })),
+				finalized: false,
+				message: 'Разделы загружены. Выберите, какие разделы сохранить, и нажмите "Сохранить"'
+			});
 		}
 
 		// 3. Чанкинг
@@ -627,7 +650,7 @@ app.post('/api/pdf/upload', upload.single('pdf'), async (req, res) => {
 app.post('/api/pdf/test-regex', upload.single('pdf'), async (req, res) => {
 	try {
 		const file = req.file;
-		const { sectionRegex, pagesToRemove } = req.body;
+		const { sectionRegex, pagesToRemove, skipFirstPages } = req.body;
 
 		if (!file) {
 			return res.status(400).json({ error: 'Файл не загружен' });
@@ -644,7 +667,8 @@ app.post('/api/pdf/test-regex', upload.single('pdf'), async (req, res) => {
 		try {
 			// Применяем ту же очистку (удаление страниц), что и в основном эндпоинте
 			cleanedPath = filePath.replace(/\.pdf$/i, '_cleaned_test.pdf');
-			const result = await cleanPdf(filePath, cleanedPath, pagesToRemove || '', sectionRegex || '');
+			const skipPages = parseInt(skipFirstPages, 10) || 0;
+			const result = await cleanPdf(filePath, cleanedPath, pagesToRemove || '', sectionRegex || '', skipPages);
 
 			res.json({
 				success: true,
@@ -678,14 +702,18 @@ app.post('/api/pdf/test-regex', upload.single('pdf'), async (req, res) => {
 app.post('/api/pdf/test-center', upload.single('pdf'), async (req, res) => {
 	try {
 		const file = req.file;
+		const { pagesToRemove, skipFirstPages } = req.body;
 		if (!file) {
 			return res.status(400).json({ error: 'Файл не загружен' });
 		}
 
 		const filePath = file.path;
+		const cleanedPath = filePath.replace(/\.pdf$/i, '_cleaned_test.pdf');
 
 		try {
-			const sections = await extractCenterSections(filePath);
+			const skipPages = parseInt(skipFirstPages, 10) || 0;
+			await cleanPdf(filePath, cleanedPath, pagesToRemove || '', '', skipPages);
+			const sections = await extractCenterSections(cleanedPath);
 
 			res.json({
 				success: true,
@@ -697,6 +725,7 @@ app.post('/api/pdf/test-center', upload.single('pdf'), async (req, res) => {
 			});
 		} finally {
 			// Удаляем временные файлы
+			try { fs.unlinkSync(cleanedPath); } catch (_) { }
 			try { fs.unlinkSync(file.path); } catch (_) { }
 		}
 	} catch (error) {
@@ -868,6 +897,103 @@ app.get('*', (req, res) => {
 
 	// Для всех остальных маршрутов отдаём index.html
 	res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Эндпоинт для финализации PDF (сохранение выбранных разделов)
+app.post('/api/pdf/finalize', async (req, res) => {
+	try {
+		const { pdfId, themeId, sectionsToKeep } = req.body;
+
+		if (!pdfId || !themeId) {
+			return res.status(400).json({ error: 'pdfId и themeId обязательны' });
+		}
+
+		if (!Array.isArray(sectionsToKeep) || sectionsToKeep.length === 0) {
+			return res.status(400).json({ error: 'Все разделы удалены. Необходимо оставить хотя бы один раздел' });
+		}
+
+		console.log(`Finalizing PDF ${pdfId}: keeping ${sectionsToKeep.length} sections`);
+
+		// Получаем информацию о PDF из БД
+		const pdfMetadata = await dbService.getPdfMetadata(pdfId);
+		if (!pdfMetadata) {
+			return res.status(404).json({ error: 'PDF не найден в БД' });
+		}
+
+		// Фильтруем разделы: оставляем только выбранные
+		const allSections = pdfMetadata.sections || [];
+		const filteredSections = allSections.filter(s => sectionsToKeep.includes(s.id));
+
+		if (filteredSections.length === 0) {
+			return res.status(400).json({ error: 'Выбранные разделы не найдены' });
+		}
+
+		// Создаём чанки только для выбранных разделов
+		const sections = filteredSections.map(s => ({ title: s.title, content: s.content || '' }));
+		const chunks = chunkBySection(sections, pdfId, themeId);
+
+		if (chunks.length === 0) {
+			return res.status(400).json({ error: 'Не удалось создать чанки из выбранных разделов' });
+		}
+
+		// Сохраняем в ChromaDB
+		let vectorizationSummary = null;
+		if (gigachatClient) {
+			try {
+				const vectorStoreInstance = getVectorStoreInstance();
+				if (vectorStoreInstance) {
+					vectorizationSummary = await vectorStoreInstance.addChunks(gigachatClient, chunks);
+					console.log('Chunks added to VectorStore during finalization');
+				} else {
+					console.warn('VectorStore not initialized, skipping vectorization during finalization');
+					vectorizationSummary = {
+						error: 'ChromaDB недоступна: векторное хранилище не инициализировано',
+						added: 0,
+						skipped: 0,
+						skippedEmptyText: 0,
+						total: 0
+					};
+				}
+			} catch (vsError) {
+				console.error('VectorStore Error during finalization:', vsError.message);
+				vectorizationSummary = {
+					error: vsError.message,
+					added: 0,
+					skipped: 0,
+					skippedEmptyText: 0,
+					total: 0
+				};
+			}
+		} else {
+			console.warn('GigaChat client not initialized, skipping vectorization during finalization');
+			vectorizationSummary = {
+				error: 'GigaChat клиент не инициализирован, векторизация недоступна',
+				added: 0,
+				skipped: 0,
+				skippedEmptyText: 0,
+				total: 0
+			};
+		}
+
+		// Обновляем метаданные в MySQL (сохраняем только выбранные разделы)
+		await dbService.updatePdfSections(pdfId, filteredSections);
+
+		console.log(`PDF ${pdfId} finalized successfully with ${filteredSections.length} sections`);
+
+		res.json({
+			success: true,
+			pdfId,
+			sectionsCount: filteredSections.length,
+			vectorization: vectorizationSummary,
+			message: 'PDF успешно сохранён'
+		});
+	} catch (error) {
+		console.error('PDF Finalize Error:', error);
+		res.status(500).json({
+			error: 'Ошибка при финализации PDF',
+			details: error.message
+		});
+	}
 });
 
 // Connect to database when server starts

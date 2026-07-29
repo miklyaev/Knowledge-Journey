@@ -3,5 +3,5 @@ CREATE TABLE IF NOT EXISTS t_pdfs (
   theme_id VARCHAR(50) NOT NULL,
   filename VARCHAR(255) NOT NULL,
   upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  sections_json TEXT -- JSON массив разделов
+  sections_json MEDIUMTEXT -- JSON-массив разделов с полным текстом для отложенной финализации
 );

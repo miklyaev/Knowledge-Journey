@@ -177,20 +177,106 @@ function extractSectionTitles(text, sectionRegex) {
 export { extractSectionTitles };
 
 /**
+ * Автоматически определяет начальные страницы PDF без номеров страниц
+ * и возвращает их номера для удаления.
+ *
+ * Анализирует страницы с начала документа. Если на странице нет ни одного
+ * изолированного числа (1-4 цифры) И страница почти пуста (< 5 элементов),
+ * она считается ненумерованной. Останавливается на первой странице,
+ * где найден номер или структурированный контент, или после 20 страниц.
+ *
+ * @param {string} pdfPath - путь к PDF файлу
+ * @returns {Promise<number[]>} - массив номеров страниц для удаления
+ */
+async function detectUnnumberedLeadingPages(pdfPath) {
+	try {
+		const pdfjsLib = await import('pdfjs-dist');
+		const dataBuffer = await fs.readFile(pdfPath);
+		const data = new Uint8Array(dataBuffer.buffer, dataBuffer.byteOffset, dataBuffer.byteLength);
+		const pdf = await pdfjsLib.getDocument({ data }).promise;
+
+		const unnumberedPages = [];
+		const MAX_AUTO_REMOVE = 20;
+
+		for (let pageNum = 1; pageNum <= pdf.numPages && pageNum <= MAX_AUTO_REMOVE; pageNum++) {
+			const page = await pdf.getPage(pageNum);
+			const content = await page.getTextContent();
+
+			// Проверяем наличие номера страницы
+			const hasPageNumber = content.items.some(item => {
+				const str = item.str.trim();
+				return /^\d{1,4}$/.test(str);
+			});
+
+			// Проверяем, пуста ли страница (< 5 элементов)
+			const isEmpty = content.items.length < 5;
+
+			// Если есть номер или страница не пуста и содержит структурированный контент, останавливаемся
+			if (hasPageNumber || (!isEmpty && content.items.length > 0)) {
+				break;
+			}
+
+			// Если страница пуста или почти пуста, добавляем в список для удаления
+			if (isEmpty || content.items.length === 0) {
+				unnumberedPages.push(pageNum);
+			}
+		}
+
+		return unnumberedPages;
+	} catch (error) {
+		console.error('Error detecting unnumbered leading pages:', error.message);
+		return [];
+	}
+}
+
+/**
  * Основная функция очистки PDF:
- * 1. Удаляет указанные страницы
- * 2. Извлекает текст из очищенного PDF
- * 3. Находит заголовки разделов по регулярному выражению
+ * 1. Автоматически удаляет начальные страницы без номеров
+ * 2. Удаляет первые N страниц (если skipFirstPages > 0)
+ * 3. Удаляет страницы, указанные пользователем
+ * 4. Извлекает текст из очищенного PDF
+ * 5. Находит заголовки разделов по регулярному выражению
  *
  * @param {string} inputPdfPath - путь к исходному PDF
  * @param {string} outputPdfPath - путь для сохранения очищенного PDF
  * @param {string} pagesToRemoveArg - страницы для удаления (формат: '1,3,5-8')
  * @param {string} sectionRegex - регулярное выражение для разделов
+ * @param {number} skipFirstPages - количество первых страниц для удаления (0 = не удалять)
  * @returns {{ pdfInfo: object, sections: string[], text: string }}
+ * @throws {Error} если skipFirstPages больше количества страниц в PDF
  */
-export async function cleanPdf(inputPdfPath, outputPdfPath, pagesToRemoveArg, sectionRegex) {
+export async function cleanPdf(inputPdfPath, outputPdfPath, pagesToRemoveArg, sectionRegex, skipFirstPages = 0) {
 	const resolvedRegex = sectionRegex || defaultSectionRegex;
 	const pagesToRemove = parsePages(pagesToRemoveArg);
+
+	// Получаем общее количество страниц
+	const inputPdfBytes = await fs.readFile(inputPdfPath);
+	const pdfDoc = await PDFDocument.load(inputPdfBytes);
+	const totalPages = pdfDoc.getPageCount();
+
+	// Проверяем skipFirstPages
+	if (skipFirstPages > 0) {
+		if (skipFirstPages > totalPages) {
+			throw new Error(
+				`skipFirstPages (${skipFirstPages}) больше количества страниц в PDF (${totalPages})`
+			);
+		}
+		// Добавляем первые N страниц в список для удаления
+		for (let i = 1; i <= skipFirstPages; i++) {
+			pagesToRemove.add(i);
+		}
+		console.log(`Skipping first ${skipFirstPages} pages`);
+	}
+
+	// Авто-детекция начальных страниц без номеров
+	const unnumberedPages = await detectUnnumberedLeadingPages(inputPdfPath);
+	for (const page of unnumberedPages) {
+		pagesToRemove.add(page);
+	}
+
+	if (unnumberedPages.length > 0) {
+		console.log(`Auto-detected unnumbered leading pages and added to removal: ${unnumberedPages.join(', ')}`);
+	}
 
 	const pdfInfo = await removePagesFromPdf(inputPdfPath, outputPdfPath, pagesToRemove);
 	const text = await extractTextFromPdf(outputPdfPath);

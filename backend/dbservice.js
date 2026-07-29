@@ -40,6 +40,7 @@ class DatabaseService {
       connection.release();
       const [rows] = await this.pool.query('SELECT NOW() as now_time');
       console.log('MySQL connection verified with test query:', rows[0]);
+      await this.pool.query('ALTER TABLE t_pdfs MODIFY sections_json MEDIUMTEXT');
       this.isDbConnected = true;
       return true;
     } catch (err) {
@@ -217,7 +218,7 @@ class DatabaseService {
       return true;
     } catch (err) {
       console.error('Database Error [savePdfMetadata]:', err.message);
-      return false;
+      throw err;
     }
   }
 
@@ -273,6 +274,44 @@ class DatabaseService {
     } catch (err) {
       console.error('Database Error [getPdfByThemeId]:', err.message);
       return null;
+    }
+  }
+
+  // Method to get PDF metadata by ID
+  async getPdfMetadata(pdfId) {
+    try {
+      const [rows] = await this.pool.query(
+        'SELECT * FROM t_pdfs WHERE id = ?',
+        [pdfId]
+      );
+      if (rows.length > 0) {
+        const row = rows[0];
+        return {
+          ...row,
+          sections: typeof row.sections_json === 'string'
+            ? JSON.parse(row.sections_json)
+            : row.sections_json
+        };
+      }
+      return null;
+    } catch (err) {
+      console.error('Database Error [getPdfMetadata]:', err.message);
+      return null;
+    }
+  }
+
+  // Method to update PDF sections
+  async updatePdfSections(pdfId, sections) {
+    try {
+      const query = 'UPDATE t_pdfs SET sections_json = ? WHERE id = ?';
+      const [result] = await this.pool.query(query, [JSON.stringify(sections), pdfId]);
+      if (result.affectedRows === 0) {
+        throw new Error(`PDF metadata not found: ${pdfId}`);
+      }
+      return true;
+    } catch (err) {
+      console.error('Database Error [updatePdfSections]:', err.message);
+      throw err;
     }
   }
 
