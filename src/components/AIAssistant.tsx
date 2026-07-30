@@ -22,6 +22,8 @@ interface AIAssistantProps {
   pdfId?: string | null;
   selectedSection?: string | null;
   themeId?: string;
+  pendingSectionTitle?: string | null;
+  onSectionTitleHandled?: () => void;
 }
 const AIAssistant: React.FC<AIAssistantProps> = ({
   onJourneyGenerated,
@@ -32,13 +34,25 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
   isDisabled,
   pdfId,
   selectedSection,
-  themeId
+  themeId,
+  pendingSectionTitle,
+  onSectionTitleHandled
 }) => {
   const [prompt, setPrompt] = useState('');
   const [provider, setProvider] = useState<AIProvider>('yandexgpt');
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState<BackendStatus>('checking');
+
+  useEffect(() => {
+    if (pendingSectionTitle && onSectionTitleHandled) {
+      setPrompt(prev => {
+        const text = `Расскажи подробнее про раздел: ${pendingSectionTitle}`;
+        return prev ? `${prev}\n\n${text}` : text;
+      });
+      onSectionTitleHandled();
+    }
+  }, [pendingSectionTitle, onSectionTitleHandled]);
 
   useEffect(() => {
     if (resetTrigger && resetTrigger > 0) {
@@ -234,7 +248,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
         <button
           onClick={handleSend}
           disabled={isLoading || !prompt.trim() || isDisabled}
-          className="absolute right-3 bottom-3 p-2.5 bg-ubuntu-orange hover:bg-[#ff632d] disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-lg transition-all shadow-md active:scale-95"
+          className="absolute right-[10px] bottom-[14.4px] p-2.5 bg-ubuntu-orange hover:bg-[#ff632d] disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-lg transition-all shadow-md active:scale-95"
           aria-label="Отправить"
         >
           <Send size={18} />

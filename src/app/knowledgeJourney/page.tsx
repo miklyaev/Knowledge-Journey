@@ -40,6 +40,7 @@ const KnowledgeJourney = () => {
 	const [sections, setSections] = useState<{ id: string, title: string }[]>([]);
 	const [selectedSection, setSelectedSection] = useState<string | null>(null);
 	const [isProcessing, setIsProcessing] = useState(false);
+	const [pendingSectionTitle, setPendingSectionTitle] = useState<string | null>(null);
 
 	useEffect(() => {
 		const fetchThemes = async () => {
@@ -253,17 +254,27 @@ const KnowledgeJourney = () => {
 															Загрузка источника...
 														</div>
 													) : sections.length > 0 ? (
-														<select
-															value={selectedSection || ''}
-															onChange={(e) => setSelectedSection(e.target.value)}
-															className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ubuntu-orange outline-none"
-														>
-															<option value="">Все разделы</option>
-															{sections.map(s => <option key={s.id} value={s.title}>{s.title}</option>)}
-														</select>
+														<div className="flex items-center gap-2">
+															<select
+																value={selectedSection || ''}
+																onChange={(e) => setSelectedSection(e.target.value)}
+																className="flex-1 p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ubuntu-orange outline-none"
+															>
+																<option value="">Все разделы</option>
+																{sections.map(s => <option key={s.id} value={s.title}>{s.title}</option>)}
+															</select>
+															{selectedSection && (
+																<button
+																	onClick={() => setPendingSectionTitle(selectedSection)}
+																	className="px-3 py-2 text-sm bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-lg font-medium transition-all whitespace-nowrap shadow-sm active:scale-95"
+																>
+																	Добавить в запрос
+																</button>
+															)}
+														</div>
 													) : (
 														<div className="text-xs text-red-500 bg-red-50 p-2 rounded border border-red-100">
-															Для этой темы источник не настроен в админке.
+															Для этой темы источник не настроен (RAG не используется). Ответы генерируются нейросетью.
 														</div>
 													)}
 												</div>
@@ -281,10 +292,12 @@ const KnowledgeJourney = () => {
 								topic={topic}
 								onTopicDetected={setTopic}
 								topicPrompt={topics.find(t => t.id === selectedTopicId)?.prompt}
-								isDisabled={selectedTopicId === 'none' || isLoadingThemes}
-								pdfId={isSourceEnabled ? pdfId : null}
-								selectedSection={isSourceEnabled ? selectedSection : null}
-								themeId={selectedTopicId}
+																isDisabled={selectedTopicId === 'none' || isLoadingThemes}
+																pdfId={isSourceEnabled ? pdfId : null}
+																selectedSection={isSourceEnabled ? selectedSection : null}
+																themeId={selectedTopicId}
+																pendingSectionTitle={pendingSectionTitle}
+																onSectionTitleHandled={() => setPendingSectionTitle(null)}
 							/>						</div>
 						{journey && (
 							<div className="w-full border-t border-gray-100 pt-8">
