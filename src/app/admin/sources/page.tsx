@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { TopBar, GnomeWindow } from "@/components/GnomeUI";
 import { getPublicApiBaseUrl } from "@/lib/apiBase";
-import { Loader2, FileText, Save, Search, CheckCircle2, Trash2, Database, Brain, FileSearch, Play, AlertTriangle } from "lucide-react";
+import { Loader2, FileText, Save, Search, CheckCircle2, Trash2, Database, Brain, FileSearch, Play, AlertTriangle, Settings } from "lucide-react";
+import ThemesModal from "@/components/ThemesModal";
 
 interface Topic {
     id: string;
@@ -53,6 +54,7 @@ const AdminSourcesPage = () => {
     const [pendingSections, setPendingSections] = useState<{ id: string, title: string, finalized?: boolean }[]>([]);
     const [selectedSectionIds, setSelectedSectionIds] = useState<Set<string>>(new Set());
     const [isFinalizingPdf, setIsFinalizingPdf] = useState(false);
+    const [isThemesModalOpen, setIsThemesModalOpen] = useState(false);
 
     useEffect(() => {
         if (isAuthorized) {
@@ -419,14 +421,23 @@ const AdminSourcesPage = () => {
                             <div className="grid grid-cols-1 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Тема обучения</label>
-                                    <select
-                                        value={selectedTopicId}
-                                        onChange={(e) => setSelectedTopicId(e.target.value)}
-                                        className="w-full p-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-ubuntu-orange outline-none text-sm"
-                                    >
-                                        <option value="none">Выберите тему...</option>
-                                        {topics.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-                                    </select>
+                                    <div className="flex gap-2">
+                                        <select
+                                            value={selectedTopicId}
+                                            onChange={(e) => setSelectedTopicId(e.target.value)}
+                                            className="p-2.5 pr-8 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-ubuntu-orange outline-none text-sm flex-1 min-w-0"
+                                        >
+                                            <option value="none">Выберите тему...</option>
+                                            {topics.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                                        </select>
+                                        <button
+                                            onClick={() => setIsThemesModalOpen(true)}
+                                            className="w-[110px] px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 rounded-lg text-sm font-bold transition-colors flex items-center justify-center"
+                                            title="Управление темами"
+                                        >
+                                            <Settings size={18} />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">
@@ -798,12 +809,29 @@ const AdminSourcesPage = () => {
                                 {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 size={16} />}
                                 {isClearing ? '...' : 'Очистить базу знаний'}
                             </button>
+                            <button
+                                onClick={() => window.location.href = '/knowledgeJourney'}
+                                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap"
+                            >
+                                Закрыть
+                            </button>
                         </div>
                     </div>
                 </GnomeWindow>
             </div>
+
+            <ThemesModal
+                isOpen={isThemesModalOpen}
+                onClose={() => setIsThemesModalOpen(false)}
+                adminLogin={login}
+                adminPassword={password}
+                onThemesUpdated={fetchThemes}
+            />
         </main>
     );
 };
 
 export default AdminSourcesPage;
+
+
+

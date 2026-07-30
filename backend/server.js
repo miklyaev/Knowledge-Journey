@@ -997,6 +997,107 @@ app.post('/api/pdf/finalize', async (req, res) => {
 });
 
 // Connect to database when server starts
+// Эндпоинты для управления темами
+app.post('/api/themes/add', async (req, res) => {
+	try {
+		const { login, password, id, title, prompt } = req.body;
+		const adminLogin = process.env.ADMIN_LOGIN || 'admin';
+		const adminPass = process.env.ADMIN_PASSWORD || 'admin';
+
+		if (login !== adminLogin || password !== adminPass) {
+			return res.status(401).json({ error: 'Неверный логин или пароль администратора' });
+		}
+
+		if (!id || !title || !prompt) {
+			return res.status(400).json({ error: 'Все поля обязательны: id, title, prompt' });
+		}
+
+		const themesPath = path.join(__dirname, 'themeCollection.json');
+		const themes = JSON.parse(fs.readFileSync(themesPath, 'utf-8'));
+
+		if (themes.some(t => t.id === id)) {
+			return res.status(400).json({ error: `Тема с ID "${id}" уже существует` });
+		}
+
+		themes.push({ id, title, prompt });
+		fs.writeFileSync(themesPath, JSON.stringify(themes, null, 2));
+
+		res.json({ success: true, message: 'Тема добавлена успешно' });
+	} catch (error) {
+		console.error('Error adding theme:', error);
+		res.status(500).json({ error: 'Ошибка при добавлении темы', details: error.message });
+	}
+});
+
+app.put('/api/themes/:id', async (req, res) => {
+	try {
+		const { login, password, title, prompt } = req.body;
+		const { id } = req.params;
+		const adminLogin = process.env.ADMIN_LOGIN || 'admin';
+		const adminPass = process.env.ADMIN_PASSWORD || 'admin';
+
+		if (login !== adminLogin || password !== adminPass) {
+			return res.status(401).json({ error: 'Неверный логин или пароль администратора' });
+		}
+
+		if (!title || !prompt) {
+			return res.status(400).json({ error: 'Поля title и prompt обязательны' });
+		}
+
+		const themesPath = path.join(__dirname, 'themeCollection.json');
+		const themes = JSON.parse(fs.readFileSync(themesPath, 'utf-8'));
+		const themeIndex = themes.findIndex(t => t.id === id);
+
+		if (themeIndex === -1) {
+			return res.status(404).json({ error: `Тема с ID "${id}" не найдена` });
+		}
+
+		themes[themeIndex] = { id, title, prompt };
+		fs.writeFileSync(themesPath, JSON.stringify(themes, null, 2));
+
+		res.json({ success: true, message: 'Тема обновлена успешно' });
+	} catch (error) {
+		console.error('Error updating theme:', error);
+		res.status(500).json({ error: 'Ошибка при обновлении темы', details: error.message });
+	}
+});
+
+app.delete('/api/themes/:id', async (req, res) => {
+	try {
+		const { login, password } = req.body;
+		const { id } = req.params;
+		const adminLogin = process.env.ADMIN_LOGIN || 'admin';
+		const adminPass = process.env.ADMIN_PASSWORD || 'admin';
+
+		if (login !== adminLogin || password !== adminPass) {
+			return res.status(401).json({ error: 'Неверный логин или пароль администратора' });
+		}
+
+		// Проверяем наличие привязанных PDF
+		const pdfCount = await dbService.countPdfsByThemeId(id);
+		if (pdfCount > 0) {
+			return res.status(400).json({ 
+				error: `Невозможно удалить тему. К ней привязано ${pdfCount} PDF файл(ов). Сначала удалите привязанные файлы.` 
+			});
+		}
+
+		const themesPath = path.join(__dirname, 'themeCollection.json');
+		const themes = JSON.parse(fs.readFileSync(themesPath, 'utf-8'));
+		const filteredThemes = themes.filter(t => t.id !== id);
+
+		if (filteredThemes.length === themes.length) {
+			return res.status(404).json({ error: `Тема с ID "${id}" не найдена` });
+		}
+
+		fs.writeFileSync(themesPath, JSON.stringify(filteredThemes, null, 2));
+
+		res.json({ success: true, message: 'Тема удалена успешно' });
+	} catch (error) {
+		console.error('Error deleting theme:', error);
+		res.status(500).json({ error: 'Ошибка при удалении темы', details: error.message });
+	}
+});
+
 dbService.connect()
 	.then(() => {
 		console.log('Database service connected successfully');

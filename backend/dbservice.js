@@ -315,4 +315,18 @@ class DatabaseService {
     }
   }
 
+  // Method to count PDFs by theme ID
+  async countPdfsByThemeId(themeId) {
+    try {
+      const [rows] = await this.pool.query(
+        'SELECT COUNT(*) as count FROM t_pdfs WHERE theme_id = ?',
+        [themeId]
+      );
+      return rows[0].count;
+    } catch (err) {
+      console.error('Database Error [countPdfsByThemeId]:', err.message);
+      return 0;
+    }
+  }
+
 } export default new DatabaseService();
