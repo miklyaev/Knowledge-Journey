@@ -24,6 +24,8 @@ interface AIAssistantProps {
   themeId?: string;
   pendingSectionTitle?: string | null;
   onSectionTitleHandled?: () => void;
+  pendingRecommendedSectionTitle?: string | null;
+  onRecommendedSectionTitleHandled?: () => void;
 }
 const AIAssistant: React.FC<AIAssistantProps> = ({
   onJourneyGenerated,
@@ -36,7 +38,9 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
   selectedSection,
   themeId,
   pendingSectionTitle,
-  onSectionTitleHandled
+  onSectionTitleHandled,
+  pendingRecommendedSectionTitle,
+  onRecommendedSectionTitleHandled
 }) => {
   const [prompt, setPrompt] = useState('');
   const [provider, setProvider] = useState<AIProvider>('yandexgpt');
@@ -53,6 +57,16 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
       onSectionTitleHandled();
     }
   }, [pendingSectionTitle, onSectionTitleHandled]);
+
+  useEffect(() => {
+    if (pendingRecommendedSectionTitle && onRecommendedSectionTitleHandled) {
+      setPrompt(prev => {
+        const text = `Расскажи подробнее про раздел: ${pendingRecommendedSectionTitle}`;
+        return prev ? `${prev}\n\n${text}` : text;
+      });
+      onRecommendedSectionTitleHandled();
+    }
+  }, [pendingRecommendedSectionTitle, onRecommendedSectionTitleHandled]);
 
   useEffect(() => {
     if (resetTrigger && resetTrigger > 0) {

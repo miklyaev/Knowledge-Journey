@@ -63,6 +63,8 @@ app.post('/api/admin/login', async (req, res) => {
 		const adminLogin = process.env.ADMIN_LOGIN || 'admin';
 		const adminPass = process.env.ADMIN_PASSWORD || 'admin';
 
+		console.log('Admin login attempt:', { login, adminLogin, passwordMatch: password === adminPass });
+
 		if (login === adminLogin && password === adminPass) {
 			return res.json({ success: true });
 		} else {
@@ -468,7 +470,7 @@ app.post('/api/ai/evaluate', async (req, res) => {
 		}
 	} catch (error) {
 		console.error('Evaluation Error:', error);
-		res.status(500).json({
+		res.status(200).json({
 			error: 'Failed to evaluate answer',
 			score: 2,
 			feedback: "Ошибка при связи с ИИ. Начислено минимальное количество баллов."
@@ -1000,7 +1002,7 @@ app.post('/api/pdf/finalize', async (req, res) => {
 // Эндпоинты для управления темами
 app.post('/api/themes/add', async (req, res) => {
 	try {
-		const { login, password, id, title, prompt } = req.body;
+		const { login, password, id, title, prompt, sections } = req.body;
 		const adminLogin = process.env.ADMIN_LOGIN || 'admin';
 		const adminPass = process.env.ADMIN_PASSWORD || 'admin';
 
@@ -1019,7 +1021,7 @@ app.post('/api/themes/add', async (req, res) => {
 			return res.status(400).json({ error: `Тема с ID "${id}" уже существует` });
 		}
 
-		themes.push({ id, title, prompt });
+		themes.push({ id, title, prompt, sections: sections || [] });
 		fs.writeFileSync(themesPath, JSON.stringify(themes, null, 2));
 
 		res.json({ success: true, message: 'Тема добавлена успешно' });
@@ -1031,7 +1033,7 @@ app.post('/api/themes/add', async (req, res) => {
 
 app.put('/api/themes/:id', async (req, res) => {
 	try {
-		const { login, password, title, prompt } = req.body;
+		const { login, password, title, prompt, sections } = req.body;
 		const { id } = req.params;
 		const adminLogin = process.env.ADMIN_LOGIN || 'admin';
 		const adminPass = process.env.ADMIN_PASSWORD || 'admin';
@@ -1052,7 +1054,7 @@ app.put('/api/themes/:id', async (req, res) => {
 			return res.status(404).json({ error: `Тема с ID "${id}" не найдена` });
 		}
 
-		themes[themeIndex] = { id, title, prompt };
+		themes[themeIndex] = { id, title, prompt, sections: sections || themes[themeIndex].sections || [] };
 		fs.writeFileSync(themesPath, JSON.stringify(themes, null, 2));
 
 		res.json({ success: true, message: 'Тема обновлена успешно' });

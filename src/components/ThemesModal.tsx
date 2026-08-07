@@ -7,7 +7,8 @@ import { getPublicApiBaseUrl } from '@/lib/apiBase';
 interface Theme {
   id: string;
   title: string;
-  prompt: string;
+  prompt: string | null;
+  sections?: string[];
 }
 
 interface ThemesModalProps {
@@ -33,7 +34,8 @@ const ThemesModal: React.FC<ThemesModalProps> = ({
   const [isAdding, setIsAdding] = useState(false);
 
   // Форма для добавления/редактирования
-  const [formData, setFormData] = useState({ id: '', title: '', prompt: '' });
+  const [formData, setFormData] = useState({ id: '', title: '', prompt: '', sections: [] as string[] });
+  const [newSectionTitle, setNewSectionTitle] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -60,22 +62,53 @@ const ThemesModal: React.FC<ThemesModalProps> = ({
   const handleAddClick = () => {
     setIsAdding(true);
     setEditingId(null);
-    setFormData({ id: '', title: '', prompt: '' });
+    setFormData({ id: '', title: '', prompt: '', sections: [] });
+    setNewSectionTitle('');
     setError('');
   };
 
   const handleEditClick = (theme: Theme) => {
     setEditingId(theme.id);
     setIsAdding(false);
-    setFormData({ id: theme.id, title: theme.title, prompt: theme.prompt });
+    setFormData({ id: theme.id, title: theme.title, prompt: theme.prompt || '', sections: theme.sections || [] });
+    setNewSectionTitle('');
     setError('');
   };
 
   const handleCancel = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ id: '', title: '', prompt: '' });
+    setFormData({ id: '', title: '', prompt: '', sections: [] });
+    setNewSectionTitle('');
     setError('');
+  };
+
+  const handleAddSection = () => {
+    if (!newSectionTitle.trim()) {
+      setError('Название раздела не может быть пустым');
+      return;
+    }
+    if (formData.sections.includes(newSectionTitle.trim())) {
+      setError('Такой раздел уже добавлен');
+      return;
+    }
+    if (formData.sections.length >= 50) {
+      setError('Максимум 50 разделов на тему');
+      return;
+    }
+    setFormData({
+      ...formData,
+      sections: [...formData.sections, newSectionTitle.trim()]
+    });
+    setNewSectionTitle('');
+    setError('');
+  };
+
+  const handleRemoveSection = (index: number) => {
+    setFormData({
+      ...formData,
+      sections: formData.sections.filter((_, i) => i !== index)
+    });
   };
 
   const handleSave = async () => {
@@ -104,7 +137,8 @@ const ThemesModal: React.FC<ThemesModalProps> = ({
           password: adminPassword,
           id: formData.id,
           title: formData.title,
-          prompt: formData.prompt
+          prompt: formData.prompt,
+          sections: formData.sections
         })
       });
 
@@ -117,7 +151,8 @@ const ThemesModal: React.FC<ThemesModalProps> = ({
       setSuccessMessage(data.message || 'Тема сохранена успешно');
       setIsAdding(false);
       setEditingId(null);
-      setFormData({ id: '', title: '', prompt: '' });
+      setFormData({ id: '', title: '', prompt: '', sections: [] });
+      setNewSectionTitle('');
       await fetchThemes();
       onThemesUpdated?.();
 
@@ -248,6 +283,49 @@ const ThemesModal: React.FC<ThemesModalProps> = ({
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Рекомендуемые разделы (макс. 50)
+                </label>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newSectionTitle}
+                      onChange={(e) => setNewSectionTitle(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddSection()}
+                      placeholder="Введите название раздела"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                    />
+                    <button
+                      onClick={handleAddSection}
+                      disabled={isLoading || !newSectionTitle.trim()}
+                      className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  {formData.sections.length > 0 && (
+                    <div className="bg-gray-50 rounded-lg p-3 max-h-40 overflow-y-auto space-y-1">
+                      {formData.sections.map((section, idx) => (
+                        <div key={idx} className="flex items-center justify-between bg-white p-2 rounded border border-gray-200">
+                          <span className="text-sm text-gray-700">{section}</span>
+                          <button
+                            onClick={() => handleRemoveSection(idx)}
+                            disabled={isLoading}
+                            className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                            title="Удалить раздел"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500">Добавлено: {formData.sections.length}/50</p>
+                </div>
               </div>
 
               <div className="flex gap-2 justify-end">

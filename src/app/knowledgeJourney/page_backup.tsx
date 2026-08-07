@@ -3,10 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { TopBar, GnomeWindow } from "@/components/GnomeUI";
 import { useAuth } from "@/lib/AuthContext";
-import AIAssistant from "@/components/AIAssistant";
-import FinalReport from "@/components/FinalReport";
-import TimerSingleChoice from "@/components/TimerSingleChoice";
-import TimerMultipleChoice from "@/components/TimerMultipleChoice";
+import AIAssistant from "@/components/AIAssistant"; import FinalReport from "@/components/FinalReport";
+import TimerSingleChoice from "@/components/TimerSingleChoice"; import TimerMultipleChoice from "@/components/TimerMultipleChoice";
 import TimerFillTheBlank from "@/components/TimerFillTheBlank";
 import TimerMatchPairs from "@/components/TimerMatchPairs";
 import TimerTrueFalse from "@/components/TimerTrueFalse";
@@ -26,14 +24,12 @@ const KnowledgeJourney = () => {
 	const { user } = useAuth();
 	const [topics, setTopics] = useState<Topic[]>([{ id: 'none', title: 'Загрузка тем...', prompt: null }]);
 	const [isLoadingThemes, setIsLoadingThemes] = useState(true);
-	const [journey, setJourney] = useState<any[] | null>(null);
-	const [currentStep, setCurrentStep] = useState(0);
+	const [journey, setJourney] = useState<any[] | null>(null); const [currentStep, setCurrentStep] = useState(0);
 	const [isFinished, setIsFinished] = useState(false);
 	const [resetTrigger, setResetTrigger] = useState(0);
 	const [topic, setTopic] = useState('');
 	const [selectedTopicId, setSelectedTopicId] = useState('none');
-	const [totalScore, setTotalScore] = useState(0);
-	const [isStepFinished, setIsStepFinished] = useState(false);
+	const [totalScore, setTotalScore] = useState(0); const [isStepFinished, setIsStepFinished] = useState(false);
 	const [lastPoints, setLastPoints] = useState(0);
 	const [showReport, setShowReport] = useState(false);
 	const [stepResults, setStepResults] = useState<any[]>([]);
@@ -107,13 +103,6 @@ const KnowledgeJourney = () => {
 
 	// Загрузка рекомендуемых разделов из выбранной темы
 	useEffect(() => {
-		if (selectedTopicId === 'none') {
-			setRecommendedSections([]);
-			setSelectedRecommendedSection(null);
-			setIsRecommendedSectionsEnabled(false);
-			return;
-		}
-
 		const selectedTopic = topics.find(t => t.id === selectedTopicId);
 		if (selectedTopic && selectedTopic.sections) {
 			setRecommendedSections(selectedTopic.sections);
@@ -123,6 +112,7 @@ const KnowledgeJourney = () => {
 			setSelectedRecommendedSection(null);
 		}
 	}, [selectedTopicId, topics]);
+
 
 	const handleJourneyGenerated = (data: any[]) => {
 		setJourney(data);
@@ -211,7 +201,6 @@ const KnowledgeJourney = () => {
 			timerSeconds: timerSeconds,
 			weight: weight
 		};
-
 		switch (step.type) {
 			case "single-choice":
 				return <TimerSingleChoice {...step} {...commonProps} />;
@@ -264,8 +253,7 @@ const KnowledgeJourney = () => {
 									</div>
 
 									{selectedTopicId !== 'none' && (
-										<div className="mt-4 pt-4 border-t border-gray-200 w-full max-w-md space-y-4">
-											{/* RAG Checkbox */}
+										<div className="mt-4 pt-4 border-t border-gray-200 w-full max-w-md">
 											<label className="flex items-center gap-2 cursor-pointer group">
 												<input
 													type="checkbox"
@@ -312,53 +300,6 @@ const KnowledgeJourney = () => {
 												</div>
 											)}
 
-											{/* Recommended Sections Checkbox - only show if RAG is disabled */}
-											{!isSourceEnabled && (
-												<>
-													<label className="flex items-center gap-2 cursor-pointer group">
-														<input
-															type="checkbox"
-															checked={isRecommendedSectionsEnabled}
-															onChange={(e) => setIsRecommendedSectionsEnabled(e.target.checked)}
-															className="w-4 h-4 rounded border-gray-300 text-ubuntu-orange focus:ring-ubuntu-orange"
-														/>
-														<span className="text-sm font-medium text-gray-700 group-hover:text-ubuntu-orange transition-colors">
-															Рекомендуемые разделы
-														</span>
-													</label>
-
-													{isRecommendedSectionsEnabled && (
-														<div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-															{recommendedSections.length > 0 ? (
-																<div className="flex items-center gap-2">
-																	<select
-																		value={selectedRecommendedSection || ''}
-																		onChange={(e) => setSelectedRecommendedSection(e.target.value)}
-																		className="flex-1 p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ubuntu-orange outline-none"
-																	>
-																		<option value="">Выберите раздел</option>
-																		{recommendedSections.map((section, idx) => (
-																			<option key={idx} value={section}>{section}</option>
-																		))}
-																	</select>
-																	{selectedRecommendedSection && (
-																		<button
-																			onClick={() => setPendingRecommendedSectionTitle(selectedRecommendedSection)}
-																			className="px-3 py-2 text-sm bg-ubuntu-orange hover:bg-[#ff632d] text-white rounded-lg font-medium transition-all whitespace-nowrap shadow-sm active:scale-95"
-																		>
-																			Добавить в запрос
-																		</button>
-																	)}
-																</div>
-															) : (
-																<div className="text-xs text-gray-500 bg-gray-50 p-2 rounded border border-gray-100">
-																	Для этой темы нет рекомендуемых разделов.
-																</div>
-															)}
-														</div>
-													)}
-												</>
-											)}
 										</div>
 									)}
 								</div>
@@ -371,16 +312,15 @@ const KnowledgeJourney = () => {
 								topic={topic}
 								onTopicDetected={setTopic}
 								topicPrompt={topics.find(t => t.id === selectedTopicId)?.prompt}
-								isDisabled={selectedTopicId === 'none' || isLoadingThemes}
-								pdfId={isSourceEnabled ? pdfId : null}
-								selectedSection={isSourceEnabled ? selectedSection : null}
-								themeId={selectedTopicId}
-								pendingSectionTitle={pendingSectionTitle}
-								onSectionTitleHandled={() => setPendingSectionTitle(null)}
-								pendingRecommendedSectionTitle={pendingRecommendedSectionTitle}
-								onRecommendedSectionTitleHandled={() => setPendingRecommendedSectionTitle(null)}
-							/>
-						</div>
+																isDisabled={selectedTopicId === 'none' || isLoadingThemes}
+																pdfId={isSourceEnabled ? pdfId : null}
+																selectedSection={isSourceEnabled ? selectedSection : null}
+																themeId={selectedTopicId}
+																pendingSectionTitle={pendingSectionTitle}
+												onSectionTitleHandled={() => setPendingSectionTitle(null)}
+												pendingRecommendedSectionTitle={pendingRecommendedSectionTitle}
+												onRecommendedSectionTitleHandled={() => setPendingRecommendedSectionTitle(null)}
+									/>								</div>
 						{journey && (
 							<div className="w-full border-t border-gray-100 pt-8">
 								{isFinished ? (

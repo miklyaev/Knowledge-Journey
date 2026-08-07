@@ -72,9 +72,16 @@ const TimerFreeResponse: React.FC<TimerFreeResponseProps> = ({
 			}
 
 			const data = await res.json();
-			setResult(data);
-			if (onComplete) {
-				onComplete(data.score > 5, data.score, timeSpent);
+			
+			// Если есть ошибка в ответе, используем её
+			if (data.error) {
+				setResult({ score: data.score || 2, feedback: data.feedback || "Не удалось получить оценку от ИИ." });
+				if (onComplete) onComplete(false, data.score || 2, timeSpent);
+			} else {
+				setResult(data);
+				if (onComplete) {
+					onComplete(data.score > 5, data.score, timeSpent);
+				}
 			}
 		} catch (error) {
 			console.error('Evaluation error:', error);
