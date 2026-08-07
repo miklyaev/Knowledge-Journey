@@ -17,7 +17,7 @@ interface TimerFreeResponseProps {
 
 const TimerFreeResponse: React.FC<TimerFreeResponseProps> = ({
 	question,
-	timerSeconds = 120,
+	timerSeconds = 180,
 	onComplete,
 	className = "my-0",
 }) => {
@@ -72,7 +72,7 @@ const TimerFreeResponse: React.FC<TimerFreeResponseProps> = ({
 			}
 
 			const data = await res.json();
-			
+
 			// Если есть ошибка в ответе, используем её
 			if (data.error) {
 				setResult({ score: data.score || 2, feedback: data.feedback || "Не удалось получить оценку от ИИ." });
