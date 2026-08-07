@@ -17,7 +17,7 @@ interface TimerFreeResponseProps {
 
 const TimerFreeResponse: React.FC<TimerFreeResponseProps> = ({
 	question,
-	timerSeconds = 180,
+	timerSeconds = 120,
 	onComplete,
 	className = "my-0",
 }) => {
