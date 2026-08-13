@@ -15,6 +15,7 @@ import { chunkBySection } from './rag/chunker.js';
 import { initializeVectorStore, getVectorStoreInstance } from './rag/vectorStore.js';
 import { cleanPdf, defaultSectionRegex, extractTextFromPdf, extractSectionTitles } from './rag/pdfCleanerService.js';
 import { extractCenterSections } from './rag/centerChunksService.js';
+import { parseEvaluationResponse } from './evaluationParser.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -454,20 +455,8 @@ app.post('/api/ai/evaluate', async (req, res) => {
 			content = data.result?.alternatives?.[0]?.message?.text || "";
 		}
 
-		// Парсим JSON из ответа ИИ
-		const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);
-		if (jsonMatch) {
-			try {
-				const result = JSON.parse(jsonMatch[0]);
-				res.json(result);
-			} catch (parseError) {
-				console.error('JSON Parse Error. Content:', content);
-				throw new Error("Failed to parse AI evaluation JSON");
-			}
-		} else {
-			console.error('No JSON found in AI response. Content:', content);
-			throw new Error("Failed to find JSON in AI response");
-		}
+		const result = parseEvaluationResponse(content);
+		res.json(result);
 	} catch (error) {
 		console.error('Evaluation Error:', error);
 		res.status(200).json({
