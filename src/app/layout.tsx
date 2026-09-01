@@ -1,12 +1,50 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { SITE_URL } from "@/lib/site";
+import { AuthProvider } from "@/lib/AuthContext";
 
 export const metadata: Metadata = {
-	title: "Интерактивная система обучения",
-	description: "Современная система обучения в стиле GNOME",
+	metadataBase: new URL(SITE_URL),
+	title: {
+		default: "Knowledge Journey — интерактивное обучение с ИИ",
+		template: "%s | Knowledge Journey",
+	},
+	description:
+		"Knowledge Journey превращает чтение в активное обучение: ИИ-ассистент задаёт вопросы по выбранной теме, проверяет свободные ответы и ведёт журнал ваших успехов.",
+	applicationName: "Knowledge Journey",
+	keywords: [
+		"интерактивное обучение",
+		"обучение с ИИ",
+		"ИИ-ассистент",
+		"проверка знаний",
+		"активное воспроизведение",
+		"журнал успехов",
+	],
+	openGraph: {
+		type: "website",
+		locale: "ru_RU",
+		siteName: "Knowledge Journey",
+		title: "Knowledge Journey — интерактивное обучение с ИИ",
+		description:
+			"Превратите чтение в активное обучение: вопросы от ИИ-ассистента, проверка свободных ответов и журнал прогресса.",
+		url: "/",
+	},
+	twitter: {
+		card: "summary",
+		title: "Knowledge Journey — интерактивное обучение с ИИ",
+		description:
+			"Превратите чтение в активное обучение: вопросы от ИИ-ассистента, проверка свободных ответов и журнал прогресса.",
+	},
+	robots: {
+		index: true,
+		follow: true,
+	},
 };
 
-import { AuthProvider } from "@/lib/AuthContext";
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+};
 
 export default function RootLayout({
 	children,

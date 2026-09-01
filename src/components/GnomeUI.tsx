@@ -17,13 +17,19 @@ interface WindowProps {
 	children: React.ReactNode;
 	hideSidebar?: boolean;
 	onClose?: () => void;
+	fitContent?: boolean;
 }
 
-export const GnomeWindow: React.FC<WindowProps> = ({ title, children, hideSidebar, onClose }) => {
+export const GnomeWindow: React.FC<WindowProps> = ({ title, children, hideSidebar, onClose, fitContent }) => {
 	return (
 		<div className="flex items-start justify-center gap-4 w-full max-w-7xl mx-auto animate-in fade-in zoom-in duration-300">
 			{/* Основное окно */}
-			<div className="gnome-window flex-grow flex flex-col max-h-[85vh] relative">
+			<div
+				className={cn(
+					"gnome-window flex-grow flex flex-col relative",
+					!fitContent && "max-h-[85vh]",
+				)}
+			>
 				<div className="gnome-header shrink-0">
 					<div className="flex gap-2 w-20">
 						<div className="w-3 h-3 rounded-full bg-[#ff5f56] shadow-inner" />
@@ -45,9 +51,11 @@ export const GnomeWindow: React.FC<WindowProps> = ({ title, children, hideSideba
 						<div className="w-20" />
 					)}
 				</div>
-				<div className="gnome-content bg-white overflow-y-auto flex-grow">
-					{children}
-				</div>
+			<div
+				className={cn("gnome-content bg-white flex-grow", !fitContent && "overflow-y-auto")}
+			>
+				{children}
+			</div>
 			</div>
 
 			{/* Отдельный блок справа */}

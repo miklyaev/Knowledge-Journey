@@ -1,5 +1,35 @@
 # Dev Notes
 
+## 2026-09-01 — SEO-оптимизация главной страницы и лендинг
+
+**Область:** Frontend, Infra
+
+**Что изменилось:**
+- Главная страница (`src/app/page.tsx`) переработана из «use client»-статьи в серверный SEO-лендинг: hero с H1 «Персональное обучение с ИИ», CTA на первом экране, блок «Как это работает» (3 шага), 4 карточки преимуществ и финальный CTA-блок.
+- Интерактивная кнопка вынесена в client-компонент `StartLearningButton` (гость → `AuthModal`, авторизованный → `/knowledgeJourney`), что позволило сделать страницу серверной и полностью индексируемой.
+- `GnomeWindow` получил опцию `fitContent`: окно лендинга растёт по контенту со скроллом страницы вместо вложенного `max-h-[85vh]`.
+- Публичное окно главной больше не показывает сайдбар со списком пользователей (`hideSidebar`) — приватность и фокус на CTA.
+- `globals.css`: `body { overflow: hidden }` заменён на `overflow-x: hidden` — длинная публичная страница теперь прокручивается; рабочие экраны сохраняют внутренний скролл (проверено на `/knowledgeJourney` и `/successJournal`).
+- SEO-инфраструктура: `src/lib/site.ts` (централизованный `SITE_URL` из `NEXT_PUBLIC_SITE_URL`), `robots.ts` (закрывает `/api/` и `/admin/`), `sitemap.ts`, JSON-LD `WebApplication` на главной.
+- Метаданные: `layout.tsx` — title template, OG/Twitter, `metadataBase`, viewport; `page.tsx` — уникальные title/description, canonical, OG с `locale: ru_RU` (page-level, т.к. shallow merge заменяет layout-объект).
+
+**Затронутые пути:**
+- `src/app/page.tsx`
+- `src/app/layout.tsx`
+- `src/app/robots.ts` (новый)
+- `src/app/sitemap.ts` (новый)
+- `src/lib/site.ts` (новый)
+- `src/components/StartLearningButton.tsx` (новый)
+- `src/components/GnomeUI.tsx`
+- `src/app/globals.css`
+
+**Зачем / контекст:**
+Прежняя главная начиналась с негативного вопроса «Почему традиционное обучение неэффективно?», CTA был спрятан после пяти абзацев, страница была client-компонентом с общими метаданными и не имела robots/sitemap/JSON-LD. Теперь первый экран даёт ценностное предложение и действие, а поисковые системы получают полный набор SEO-сигналов.
+
+**Для продакшена:** задать `NEXT_PUBLIC_SITE_URL` (например, `https://knowledge-journey.example.ru`) — от него зависят canonical, sitemap и Open Graph URL.
+
+---
+
 ## 2026-08-13 — Исправление оценки свободного ответа
 
 **Область:** Backend, Frontend
