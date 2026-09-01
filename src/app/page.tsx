@@ -80,7 +80,7 @@ export default function HomePage() {
 				<GnomeWindow title="Knowledge Journey — интерактивное обучение с ИИ" hideSidebar fitContent>
 					<article className="prose prose-slate max-w-none">
 						<section className="not-prose">
-							<h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+							<h1 className="text-[15px] md:text-[18px] font-bold text-gray-900 mb-4">
 								Персональное обучение с ИИ
 							</h1>
 							<p className="text-lg text-gray-600 mb-8">
